@@ -8,6 +8,6 @@
     "outDir": "build",
     "esModuleInterop": true
   },
-  "include": ["src/**/*", "src/routes/user.route.ts"],
+  "include": ["src/**/*"],
   "exclude": ["src/test/**/*", "node_modules"]
 }
