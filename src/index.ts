@@ -17,6 +17,9 @@ mongoose.connect(process.env.DB_URL_CONNECTION!);
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use(express.static(join(__dirname, "../public")));
+
 app.listen(process.env.DEV ? 3000 : 80, () => console.log("Conectado à porta 3000"));
 
 // Inicialização do Logger
