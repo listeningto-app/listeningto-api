@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES5",
+    "module": "CommonJS",
+    "allowJs": true,
+    "strict": true,
+    "sourceMap": true,
+    "outDir": "build",
+    "esModuleInterop": true
+  },
+  "include": ["src/**/*", "src/routes/user.route.ts"],
+  "exclude": ["src/test/**/*", "node_modules"]
+}

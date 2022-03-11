@@ -1,0 +1,40 @@
+{
+  "name": "listeningto-api",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "license": "MIT",
+  "scripts": {
+    "dev": "cross-env DEV=true ts-node-dev --rs --respawn .",
+    "test": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha --timeout 10000 -r ts-node/register 'src/test/**/*.spec.ts'"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.0.0",
+    "dotenv-expand": "^8.0.1",
+    "express": "^4.17.3",
+    "ioredis": "^4.28.5",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^6.2.2",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.2",
+    "@types/chai": "^4.3.0",
+    "@types/chai-as-promised": "^7.1.5",
+    "@types/express": "^4.17.13",
+    "@types/ioredis": "^4.28.8",
+    "@types/jsonwebtoken": "^8.5.8",
+    "@types/mocha": "^9.1.0",
+    "@types/morgan": "^1.9.3",
+    "@types/node": "^17.0.18",
+    "@types/supertest": "^2.0.11",
+    "chai": "^4.3.6",
+    "chai-as-promised": "^7.1.1",
+    "cross-env": "^7.0.3",
+    "mocha": "^9.2.1",
+    "supertest": "^6.2.2",
+    "ts-node": "^10.6.0",
+    "ts-node-dev": "^1.1.8",
+    "typescript": "^4.6.2"
+  }
+}
