@@ -7,7 +7,7 @@ interface IUser {
   password?: string,
   profilePic?: string,
   readonly createdAt?: Date,
-  verified?: boolean
+  verifiedArtist?: boolean
 }
 
 export default IUser;

@@ -25,14 +25,14 @@ const userSchema = new mongoose.Schema<IUser>({
   },
   profilePic: {
     type: String,
-    default: "../../102030/405060/123456.jpg"
+    default: "../../public/images/1/1.jpg"
   },
   createdAt: {
     type: Date,
     default: (): Date => { return new Date() },
     immutable: true
   },
-  verified: Boolean
+  verifiedArtist: Boolean
 });
 
 // Checar existência de usuário com o mesmo username
