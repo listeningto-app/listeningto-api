@@ -24,6 +24,4 @@ const logStream = fs.createWriteStream(join(__dirname, "../access.log"), { flags
 app.use(morgan("common", { stream: logStream }));
 
 // Routes do Express
-// Usuário
-// import { user_route } from './routes/user.route';
-app.use("/user", require("./routes/user.route"));
+app.use("/user", require("./routes/user.route")); // Usuário
