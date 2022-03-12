@@ -4,11 +4,13 @@ import userModel from '../models/user.model';
 import errorHandling, { BadRequestError, UnauthorizedError, NotFoundError } from '../services/errorHandling.service';
 import jwtVerify from '../services/jwtVerify.service'
 import IUser from '../interfaces/user.interface';
+import fileHandling from '../services/fileHandling.service';
 
 // Imports de libraries
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import fileUpload from 'express-fileupload';
 
 // Dotenv
 import { join } from 'path';
@@ -76,7 +78,8 @@ router.patch("/", async (req, res) => {
     let toUpdate: IUser = {
       username: req.body.username,
       email: req.body.email,
-      password: req.body.password
+      password: req.body.password,
+      profilePic: undefined
     }
     let auth: string | undefined = req.headers.authorization;
 
@@ -84,6 +87,13 @@ router.patch("/", async (req, res) => {
     if (!auth) throw new UnauthorizedError("An Authorization header must be provided with a auth token");
     auth = auth.split(" ")[1];
     const id = (await jwtVerify(auth)).id;
+
+    // Inserção da profile pic
+    const profilePic = req.files?.profilePic;
+    if (profilePic) {
+      const file = Array.isArray(profilePic) ? profilePic.shift()! : profilePic;
+      toUpdate.profilePic = await fileHandling("Image", file);
+    }
 
     // Atualização no database
     const user = await User.update(id, toUpdate);

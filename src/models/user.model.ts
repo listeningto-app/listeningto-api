@@ -25,7 +25,7 @@ const userSchema = new mongoose.Schema<IUser>({
   },
   profilePic: {
     type: String,
-    default: "../../public/images/1/1.jpg"
+    default: "images/1/ac1ae8c497a46b4263f35bb0f60d8fc0.png"
   },
   createdAt: {
     type: Date,

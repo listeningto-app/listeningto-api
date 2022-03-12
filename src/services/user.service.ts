@@ -49,6 +49,7 @@ async function _update(id: mongoose.Types.ObjectId | string, newData: IUser) {
   if (newData.username) user.username = newData.username;
   if (newData.email) user.email = newData.email;
   if (newData.password) user.password = newData.password;
+  if (newData.profilePic) user.profilePic = newData.profilePic;
   
   await _validate(user);
   await user.save();

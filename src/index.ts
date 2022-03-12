@@ -8,6 +8,7 @@ expand(dotenv.config({ path: join(__dirname, "../.env") }));
 import express from 'express';
 import mongoose from 'mongoose';
 import morgan from 'morgan';
+import fileupload from 'express-fileupload';
 import fs from 'fs';
 
 // Inicialização do Banco de Dados
@@ -19,6 +20,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(express.static(join(__dirname, "../public")));
+
+app.use(fileupload());
 
 app.listen(process.env.DEV ? 3000 : 80, () => console.log("Conectado à porta 3000"));
 
