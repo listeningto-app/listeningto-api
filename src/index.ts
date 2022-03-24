@@ -31,4 +31,4 @@ app.use(morgan("common", { stream: logStream }));
 
 // Routes do Express
 app.use("/user", require("./routes/user.route")); // Usuário
-app.use("/music", require("./routes/music.route")); // 
+app.use("/music", require("./routes/music.route")); // Música
