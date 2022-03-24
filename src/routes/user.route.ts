@@ -2,7 +2,7 @@
 import User from '../services/user.service';
 import userModel from '../models/user.model';
 import errorHandling, { BadRequestError, UnauthorizedError, NotFoundError } from '../services/errorHandling.service';
-import jwtVerify from '../services/jwtVerify.service'
+import jwtVerify from '../services/jwtVerify.service';
 import IUser from '../interfaces/user.interface';
 import fileHandling from '../services/fileHandling.service';
 
@@ -10,7 +10,6 @@ import fileHandling from '../services/fileHandling.service';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import fileUpload from 'express-fileupload';
 
 // Dotenv
 import { join } from 'path';
@@ -30,10 +29,10 @@ import express from "express";
 const router = express.Router();
 
 // Operação GET - Obter usuário - Path /
-router.get("/", async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     let doc: string | null | mongoose.LeanDocument<IUser>; 
-    const id: string | undefined = req.body.id;
+    const id: string | undefined = req.params.id;
 
     if (!id) throw new BadRequestError("An ID must be provided");
 
