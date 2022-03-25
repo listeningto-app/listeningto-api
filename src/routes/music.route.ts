@@ -107,7 +107,33 @@ router.post("/", async (req, res) => {
 // Operação PATCH - Atualizar música - Path /
 router.patch("/:id", async (req, res) => {
   try {
+    let auth = req.headers.authorization;
+    // Verificação de auth
+    if (!auth) throw new UnauthorizedError("An Authorization header must be provided with a auth token");
+    auth = auth.split(" ")[1];
+    const id = (await jwtVerify(auth)).id;
 
+    const music = await Music.read(req.params.id);
+    if (music.authors!.shift() != new mongoose.Types.ObjectId(id)) throw new UnauthorizedError("You are not the original creator of the music");
+
+    const toUpdate: IMusic = {
+      name: req.body.name,
+      authors: req.body.authors,
+      genre: req.body.genre,
+      album: req.body.album
+    }
+
+    if (toUpdate.authors) {
+      toUpdate.authors.forEach((author, index) => {
+        if ()
+      });
+    }
+
+    if (toUpdate.album) {
+
+    }
+
+    const newMusic = await Music.update(req.params.id, toUpdate);
   } catch (e: any) { errorHandling(e, res) }
 });
 
