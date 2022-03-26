@@ -67,7 +67,7 @@ router.post("/", async (req, res) => {
     const token: string = jwt.sign({ id: user._id!.toString() }, process.env.JWT_SECRET!);
 
     // Resposta
-    return res.status(201).json({ auth: token });
+    return res.status(201).json({ auth: token, user });
   } catch (e: any) { return errorHandling(e, res) }
 });
 
@@ -101,7 +101,7 @@ router.patch("/", async (req, res) => {
     await redis.set(id, JSON.stringify(user));
 
     // Resposta
-    return res.status(204).end();
+    return res.status(200).json(user);
   } catch (e: any) { return errorHandling(e, res) };
 });
 

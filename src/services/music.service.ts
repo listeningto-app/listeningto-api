@@ -41,6 +41,8 @@ async function _update(id: mongoose.Types.ObjectId | string, newData: IMusic) {
   if (newData.name) music.name = newData.name;
   if (newData.cover) music.cover = newData.cover;
   if (newData.album) music.album = newData.album;
+  if (newData.authors) music.authors = newData.authors;
+  if (newData.genre) music.genre = newData.genre;
   
   await _validate(music);
   await music.save();
