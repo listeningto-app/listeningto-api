@@ -16,13 +16,6 @@ import dotenv from 'dotenv';
 import { expand } from 'dotenv-expand';
 expand(dotenv.config({ path: join(__dirname, "../../.env") }));
 
-// Import e criação do client do Redis
-import ioredis from 'ioredis';
-const redis = new ioredis(process.env.REDIS_PORT, {
-  host: process.env.REDIS_HOST,
-  password: process.env.REDIS_PASSWORD
-});
-
 // Import e inicialização do Express
 import express from "express";
 const router = express.Router();
@@ -35,16 +28,8 @@ router.get("/:id", async (req, res) => {
 
     if (!id) throw new BadRequestError("An ID must be provided");
 
-    // Busca no Redis
-    doc = await redis.get(id);
-    if (doc) {
-      doc = JSON.parse(doc);
-      return res.status(200).send(doc);
-    }
-
-    // Busca no database e inserção no Redis
+    // Busca do usuário
     doc = await Music.read(id);
-    await redis.set(id, JSON.stringify(doc), "ex", 1800);
 
     // Resposta
     return res.status(200).json(doc);
@@ -102,9 +87,6 @@ router.post("/", async (req, res) => {
     }
 
     const music = await Music.create(objForCreation);
-
-    // Inserção no Redis
-    await redis.set(music._id!.toString(), JSON.stringify(music), "ex", 1800);
 
     // Resposta
     return res.status(201).json(music);

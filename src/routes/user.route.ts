@@ -17,13 +17,6 @@ import dotenv from 'dotenv';
 import { expand } from 'dotenv-expand';
 expand(dotenv.config({ path: join(__dirname, "../../.env") }));
 
-// Import e criação do client do Redis
-import ioredis from 'ioredis';
-const redis = new ioredis(process.env.REDIS_PORT, {
-  host: process.env.REDIS_HOST,
-  password: process.env.REDIS_PASSWORD
-});
-
 // Import e inicialização do Express
 import express from "express";
 const router = express.Router();
@@ -33,19 +26,10 @@ router.get("/:id", async (req, res) => {
   try {
     let doc: string | null | mongoose.LeanDocument<IUser>; 
     const id: string | undefined = req.params.id;
-
     if (!id) throw new BadRequestError("An ID must be provided");
 
-    // Busca no Redis
-    doc = await redis.get(id);
-    if (doc) {
-      doc = JSON.parse(doc);
-      return res.status(200).send(doc);
-    }
-
-    // Busca no database e inserção no Redis
+    // Busca do usuário
     doc = await User.read(id);
-    await redis.set(id, JSON.stringify(doc), "ex", 1800);
 
     // Resposta
     return res.status(200).json(doc);
@@ -59,12 +43,9 @@ router.post("/", async (req, res) => {
 
     // Inserção no database
     const user = await User.create({ username: username, email: email, password: password });
-    
-    // Inserção no Redis
-    await redis.set(user._id!.toString(), JSON.stringify(user), "ex", 1800);
 
     // Criação do JWT
-    const token: string = jwt.sign({ id: user._id!.toString() }, process.env.JWT_SECRET!);
+    const token: string = jwt.sign({ id: user.id }, process.env.JWT_SECRET!);
 
     // Resposta
     return res.status(201).json({ auth: token, user });
@@ -97,9 +78,6 @@ router.patch("/", async (req, res) => {
     // Atualização no database
     const user = await User.update(id, toUpdate);
 
-    // Atualização / Inserção no Redis
-    await redis.set(id, JSON.stringify(user));
-
     // Resposta
     return res.status(200).json(user);
   } catch (e: any) { return errorHandling(e, res) };
@@ -117,9 +95,6 @@ router.delete("/", async (req, res) => {
 
     // Deletar do database
     await User.delete(id);
-
-    // Deletar do Redis
-    await redis.del(id);
 
     // Resposta
     return res.status(204).end();
@@ -144,7 +119,7 @@ router.post("/login", async (req, res) => {
     if (!authenticated) throw new UnauthorizedError("Password incorrect");
 
     // Criação do JWT
-    const token: string = jwt.sign({ id: user._id!.toString() }, process.env.JWT_SECRET!);
+    const token: string = jwt.sign({ id: user.id }, process.env.JWT_SECRET!);
 
     // Resposta
     return res.status(200).json({ auth: token });

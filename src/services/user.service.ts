@@ -3,12 +3,31 @@ import IUser from '../interfaces/user.interface';
 import userModel from '../models/user.model';
 import { NotFoundError, BadRequestError } from './errorHandling.service';
 
+// Import e criação do client do Redis
+import ioredis from 'ioredis';
+const redis = new ioredis(process.env.REDIS_PORT, {
+  host: process.env.REDIS_HOST,
+  password: process.env.REDIS_PASSWORD
+});
+
 // Função para uso interno nas operações READ e DELETE
 async function _getUserById(id: mongoose.Types.ObjectId | string) {
-  const userDoc = await userModel.findById(id);
+  let userDoc;
 
-  if (userDoc) return userDoc;
-  throw new NotFoundError("User not found");
+  // Busca no Redis
+  userDoc = await redis.get(id.toString());
+  if (userDoc) {
+    let doc: mongoose.Document<unknown, any, IUser> & IUser = JSON.parse(userDoc);
+    return doc;
+  }
+
+  // Busca no database
+  userDoc = await userModel.findById(id);
+  if (!userDoc) throw new NotFoundError("User not found");
+
+  // Inserção no Redis
+  await redis.set(userDoc.id, JSON.stringify(userDoc), "ex", 1800);
+  return userDoc;
 }
 
 // Função para uso interno nas operações CREATE e UPDATE
@@ -28,6 +47,8 @@ async function _create(UserData: IUser) {
   const newUser = new userModel(UserData);
   await _validate(newUser);
   await newUser.save();
+
+  await redis.set(newUser.id, JSON.stringify(newUser), "ex", 1800);
 
   return newUser.toObject();
 }
@@ -51,8 +72,13 @@ async function _update(id: mongoose.Types.ObjectId | string, newData: IUser) {
   if (newData.password) user.password = newData.password;
   if (newData.profilePic) user.profilePic = newData.profilePic;
   
+  // Verificação e atualização no database
   await _validate(user);
   await user.save();
+
+  // Atualização no Redis
+  await redis.set(user.id, JSON.stringify(user), "ex", 1800);
+
   return user.toObject();
 }
 
@@ -60,6 +86,7 @@ async function _update(id: mongoose.Types.ObjectId | string, newData: IUser) {
 async function _delete(id: mongoose.Types.ObjectId | string) {
   let user = await _getUserById(id);
   await user.delete();
+  await redis.del(id.toString());
 
   return;
 }

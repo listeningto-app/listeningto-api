@@ -1,13 +1,33 @@
 import mongoose from "mongoose";
 import musicModel from "../models/music.model";
 import IMusic from "../interfaces/music.interface";
-import { NotFoundError, BadRequestError, UnauthorizedError } from "./errorHandling.service";
+import { NotFoundError, BadRequestError } from "./errorHandling.service";
+
+// Import e criação do client do Redis
+import ioredis from 'ioredis';
+const redis = new ioredis(process.env.REDIS_PORT, {
+  host: process.env.REDIS_HOST,
+  password: process.env.REDIS_PASSWORD
+});
 
 async function _getMusicById(id: mongoose.Types.ObjectId | string) {
-  const doc = await musicModel.findById(id);
+  let musicDoc;
 
-  if (doc) return doc;
-  throw new NotFoundError("User not found");
+  // Busca no Redis
+  musicDoc = await redis.get(id.toString());
+  if (musicDoc) {
+    let doc: mongoose.Document<unknown, any, IMusic> & IMusic = JSON.parse(musicDoc);
+    return doc;
+  }
+
+  // Busca no database
+  musicDoc = await musicModel.findById(id);
+
+  if (!musicDoc) throw new NotFoundError("User not found");
+
+  // Inserção no Redis
+  await redis.set(musicDoc.id, JSON.stringify(musicDoc), "ex", 1800);
+  return musicDoc;
 }
 
 async function _validate(doc: mongoose.Document<IMusic>) {
@@ -24,6 +44,8 @@ async function _create(MusicData: IMusic) {
   const newMusic = new musicModel(MusicData);
   await _validate(newMusic);
   await newMusic.save();
+
+  await redis.set(newMusic.id, JSON.stringify(newMusic), "ex", 1800);
 
   return newMusic.toObject();
 }
@@ -43,9 +65,13 @@ async function _update(id: mongoose.Types.ObjectId | string, newData: IMusic) {
   if (newData.album) music.album = newData.album;
   if (newData.authors) music.authors = newData.authors;
   if (newData.genre) music.genre = newData.genre;
-  
+
+  // Verificação e atualização no database
   await _validate(music);
   await music.save();
+
+  // Atualização no Redis
+  await redis.set(music.id, JSON.stringify(music), "ex", 1800);
   return music.toObject();
 }
 
@@ -53,6 +79,7 @@ async function _update(id: mongoose.Types.ObjectId | string, newData: IMusic) {
 async function _delete(id: mongoose.Types.ObjectId | string) {
   let music = await _getMusicById(id);
   await music.delete();
+  await redis.del(id.toString());
 
   return;
 }
