@@ -2,7 +2,6 @@
 import fileHandling from '../services/fileHandling.service';
 import errorHandling, { BadRequestError, UnauthorizedError, NotFoundError } from '../services/errorHandling.service';
 import Music from '../services/music.service';
-import musicModel from '../models/music.model';
 import jwtVerify from '../services/jwtVerify.service'
 import IMusic from '../interfaces/music.interface';
 import userModel from '../models/user.model';
@@ -23,7 +22,7 @@ const router = express.Router();
 // Operação GET - Obter música - Path /
 router.get("/:id", async (req, res) => {
   try {
-    let doc: string | null | mongoose.LeanDocument<IMusic>; 
+    let doc: mongoose.LeanDocument<IMusic>; 
     const id: string | undefined = req.params.id;
 
     if (!id) throw new BadRequestError("An ID must be provided");

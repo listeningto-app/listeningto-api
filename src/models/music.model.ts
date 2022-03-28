@@ -31,12 +31,4 @@ const musicSchema = new mongoose.Schema<IMusic>({
   }
 });
 
-musicSchema.pre("save", async function (this: IMusic & mongoose.Document, next: Function) {
-  const music = this;
-  await music.populate('album');
-  await music.populate('authors');
-
-  next();
-});
-
 export default mongoose.model("MusicModel", musicSchema);
