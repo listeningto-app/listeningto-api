@@ -12,21 +12,12 @@ const redis = new ioredis(process.env.REDIS_PORT, {
 
 // Função para uso interno nas operações READ e DELETE
 async function _getUserById(id: mongoose.Types.ObjectId | string) {
-  let userDoc;
-
-  // Busca no Redis
-  userDoc = await redis.get(id.toString());
-  if (userDoc) {
-    let doc: mongoose.Document<unknown, any, IUser> & IUser = JSON.parse(userDoc);
-    return doc;
-  }
-
   // Busca no database
-  userDoc = await userModel.findById(id);
+  let userDoc = await userModel.findById(id);
   if (!userDoc) throw new NotFoundError("User not found");
 
   // Inserção no Redis
-  await redis.set(userDoc.id, JSON.stringify(userDoc), "ex", 1800);
+  await redis.set(userDoc.id, JSON.stringify(userDoc.toObject()), "ex", 1800);
   return userDoc;
 }
 
@@ -40,10 +31,6 @@ async function _validate(doc: mongoose.Document<IUser>) {
 
 // Operação CREATE
 async function _create(UserData: IUser) {
-  if (typeof UserData.username !== 'string') throw new BadRequestError("Username must be of type string");
-  if (typeof UserData.email !== 'string') throw new BadRequestError("Email must be of type string");
-  if (typeof UserData.password !== 'string') throw new BadRequestError("Password must be of type string");
-
   const newUser = new userModel(UserData);
   await _validate(newUser);
   await newUser.save();
@@ -55,16 +42,18 @@ async function _create(UserData: IUser) {
 
 // Operação READ
 async function _read(id: mongoose.Types.ObjectId | string) {
-  let doc = await _getUserById(id);
-  return doc.toObject();
+  let userDoc: string | mongoose.Document<unknown, any, IUser> & IUser | null;
+
+  // Busca no Redis
+  userDoc = await redis.get(id.toString());
+  if (userDoc) return JSON.parse(userDoc);
+
+  userDoc = await _getUserById(id);
+  return userDoc.toObject();
 }
 
 // Operação UPDATE
 async function _update(id: mongoose.Types.ObjectId | string, newData: IUser) {
-  if (newData.username && typeof newData.username !== 'string') throw new BadRequestError("Username must be of type string");
-  if (newData.email && typeof newData.email !== 'string') throw new BadRequestError("Email must be of type string");
-  if (newData.password && typeof newData.password !== 'string') throw new BadRequestError("Password must be of type string");
-
   let user = await _getUserById(id);
 
   if (newData.username) user.username = newData.username;
@@ -77,7 +66,7 @@ async function _update(id: mongoose.Types.ObjectId | string, newData: IUser) {
   await user.save();
 
   // Atualização no Redis
-  await redis.set(user.id, JSON.stringify(user), "ex", 1800);
+  await redis.set(user.id, JSON.stringify(user.toObject()), "ex", 1800);
 
   return user.toObject();
 }
@@ -85,6 +74,8 @@ async function _update(id: mongoose.Types.ObjectId | string, newData: IUser) {
 // Operação DELETE
 async function _delete(id: mongoose.Types.ObjectId | string) {
   let user = await _getUserById(id);
+
+  console.log(user);
   await user.delete();
   await redis.del(id.toString());
 

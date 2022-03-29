@@ -11,22 +11,12 @@ const redis = new ioredis(process.env.REDIS_PORT, {
 });
 
 async function _getMusicById(id: mongoose.Types.ObjectId | string) {
-  let musicDoc;
-
-  // Busca no Redis
-  musicDoc = await redis.get(id.toString());
-  if (musicDoc) {
-    let doc: mongoose.Document<unknown, any, IMusic> & IMusic = JSON.parse(musicDoc);
-    return doc;
-  }
-
   // Busca no database
-  musicDoc = await musicModel.findById(id);
-
+  let musicDoc = await musicModel.findById(id);
   if (!musicDoc) throw new NotFoundError("User not found");
 
   // Inserção no Redis
-  await redis.set(musicDoc.id, JSON.stringify(musicDoc), "ex", 1800);
+  await redis.set(musicDoc.id, JSON.stringify(musicDoc.toObject()), "ex", 1800);
   return musicDoc;
 }
 
@@ -45,15 +35,20 @@ async function _create(MusicData: IMusic) {
   await _validate(newMusic);
   await newMusic.save();
 
-  await redis.set(newMusic.id, JSON.stringify(newMusic), "ex", 1800);
+  await redis.set(newMusic.id, JSON.stringify(newMusic.toObject()), "ex", 1800);
 
   return newMusic.toObject();
 }
 
 // Operação READ
 async function _read(id: mongoose.Types.ObjectId | string) {
-  let doc = await _getMusicById(id);
-  return doc.toObject();
+  let musicDoc: string | mongoose.Document<unknown, any, IMusic> & IMusic | null;
+  // Busca no Redis
+  musicDoc = await redis.get(id.toString());
+  if (musicDoc) return JSON.parse(musicDoc);
+
+  musicDoc = await _getMusicById(id);
+  return musicDoc.toObject();
 }
 
 // Operação UPDATE

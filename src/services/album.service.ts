@@ -12,17 +12,8 @@ const redis = new ioredis(process.env.REDIS_PORT, {
 
 // Função para uso interno nas operações READ e DELETE
 async function _getAlbumById(id: mongoose.Types.ObjectId | string) {
-  let albumDoc;
-  
-  // Busca no Redis
-  albumDoc = await redis.get(id.toString());
-  if (albumDoc) {
-    let doc: mongoose.Document<unknown, any, IAlbum> & IAlbum = JSON.parse(albumDoc);
-    return doc;
-  }
-  
   // Busca no database
-  albumDoc = await albumModel.findById(id);
+  let albumDoc = await albumModel.findById(id);
   if (!albumDoc) throw new NotFoundError("User not found");
   
   // Inserção no Redis
@@ -44,13 +35,19 @@ async function _create(AlbumData: IAlbum) {
   await _validate(newAlbum);
   await newAlbum.save();
 
-  await redis.set(newAlbum.id, JSON.stringify(newAlbum), "ex", 1800);
+  await redis.set(newAlbum.id, JSON.stringify(newAlbum.toObject()), "ex", 1800);
 
   return newAlbum.toObject();
 }
 
 // Operação READ
 async function _read(id: mongoose.Types.ObjectId | string) {
+  let albumDoc: string | mongoose.Document<IAlbum> | null;
+
+  // Busca no Redis
+  albumDoc = await redis.get(id.toString());
+  if (albumDoc) return JSON.parse(albumDoc);
+
   let doc = await _getAlbumById(id);
   return doc.toObject();
 }
@@ -69,7 +66,7 @@ async function _update(newData: IAlbum, id: mongoose.Types.ObjectId | string) {
   await album.save();
 
   // Atualização no Redis
-  await redis.set(album.id, JSON.stringify(album), "ex", 1800);
+  await redis.set(album.id, JSON.stringify(album.toObject()), "ex", 1800);
 
   return album.toObject();
 }
