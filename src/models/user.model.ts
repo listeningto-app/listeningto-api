@@ -27,13 +27,8 @@ const userSchema = new mongoose.Schema<IUser>({
     type: String,
     default: "images/1/ac1ae8c497a46b4263f35bb0f60d8fc0.png"
   },
-  createdAt: {
-    type: Date,
-    default: (): Date => { return new Date() },
-    immutable: true
-  },
   verifiedArtist: Boolean
-});
+}, { timestamps: true });
 
 // Checar existência de usuário com o mesmo username
 userSchema.pre("save", function (this: IUser & mongoose.Document, next: Function) {

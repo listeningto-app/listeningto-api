@@ -1,13 +1,14 @@
 import type mongoose from 'mongoose';
 
 interface IUser {
-  _id?: mongoose.Types.ObjectId,
+  readonly _id?: mongoose.Types.ObjectId,
   username?: string,
   email?: string,
   password?: string,
   profilePic?: string,
+  verifiedArtist?: boolean,
   readonly createdAt?: Date,
-  verifiedArtist?: boolean
+  readonly updatedAt?: Date
 }
 
 export default IUser;

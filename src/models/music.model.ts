@@ -29,6 +29,6 @@ const musicSchema = new mongoose.Schema<IMusic>({
     type: Number,
     default: 0
   }
-});
+}, { timestamps: true });
 
 export default mongoose.model("MusicModel", musicSchema);
