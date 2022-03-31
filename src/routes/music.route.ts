@@ -5,15 +5,10 @@ import Music from '../services/music.service';
 import jwtVerify from '../services/jwtVerify.service'
 import IMusic from '../interfaces/music.interface';
 import userModel from '../models/user.model';
+import albumModel from '../models/album.model';
 
 // Imports de libraries
 import mongoose from 'mongoose';
-
-// Dotenv
-import { join } from 'path';
-import dotenv from 'dotenv';
-import { expand } from 'dotenv-expand';
-expand(dotenv.config({ path: join(__dirname, "../../.env") }));
 
 // Import e inicialização do Express
 import express from "express";
@@ -37,8 +32,6 @@ router.get("/:id", async (req, res) => {
 
 // Operação POST - Criar música - Path /
 router.post("/", async (req, res) => {
-  // TODO: Checagem de álbum
-
   try {
     let auth: string | undefined = req.headers.authorization;
 
@@ -72,8 +65,19 @@ router.post("/", async (req, res) => {
     }
 
     // Inserção de cover e arquivo da música
-    const coverPath = cover ? await fileHandling("Image", Array.isArray(cover) ? cover.shift()! : cover) : undefined;
+    let coverPath = album ? undefined : (cover ? await fileHandling("Image", Array.isArray(cover) ? cover.shift()! : cover) : undefined);
     const filePath = await fileHandling("Music", Array.isArray(file) ? file.shift()! : file);
+
+    // Checagem de álbum
+    if (album) {
+      const albumDoc = await albumModel.findById(album);
+      if (!albumDoc) throw new NotFoundError("Album not found");
+
+      if (albumDoc.author!.toString() != id) throw new UnauthorizedError("The creator of the album and the creator of the music must be the same");
+
+      coverPath = albumDoc.cover;
+      album = albumDoc._id;
+    }
 
     // Inserção no database
     const objForCreation: IMusic = {
@@ -94,8 +98,6 @@ router.post("/", async (req, res) => {
 
 // Operação PATCH - Atualizar música - Path /
 router.patch("/:id", async (req, res) => {
-  // TODO: Atualização de álbum
-
   try {
     let auth = req.headers.authorization;
     // Verificação de auth
@@ -103,8 +105,8 @@ router.patch("/:id", async (req, res) => {
     auth = auth.split(" ")[1];
     const id = (await jwtVerify(auth)).id;
 
-    const music = await Music.read(req.params.id);
-    if (music.authors![0].toString() != id) throw new UnauthorizedError("You are not the original creator of the music");
+    const musicDoc = await Music.read(req.params.id);
+    if (musicDoc.authors![0].toString() != id) throw new UnauthorizedError("You are not the original creator of the music");
 
     let toUpdate: IMusic = {
       name: req.body.name,
@@ -130,13 +132,13 @@ router.patch("/:id", async (req, res) => {
         uniqueAuthors[i] = new mongoose.Types.ObjectId(uniqueAuthors[i]);
       }
 
-      let authors = music.authors!;
+      let authors = musicDoc.authors!;
 
       // Inserção ou remoção de autores
       for(let i in uniqueAuthors) {
         if (uniqueAuthors[i].toString() == id) throw new BadRequestError("You cannot remove yourself from the authors");
 
-        const index = authors.findIndex(aid => aid.toString() === uniqueAuthors[i].toString());
+        const index = authors.findIndex((aid: mongoose.Types.ObjectId) => aid.toString() === uniqueAuthors[i].toString());
         if (index === -1) authors.push(uniqueAuthors[i])
         else authors.splice(index, 1);
       }
@@ -144,15 +146,22 @@ router.patch("/:id", async (req, res) => {
       toUpdate.authors = authors;
     }
 
-    // Atualização de álbum
-    // if (toUpdate.album) {
-
-    // }
-
     // Atualização de cover
     if (req.files?.cover) {
       const cover = req.files?.cover
       toUpdate.cover = await fileHandling("Image", Array.isArray(cover) ? cover.shift()! : cover);
+    }
+
+    // Atualização de álbum
+    if (toUpdate.album) {
+      // Checagem de álbum
+      const albumDoc = await albumModel.findById(toUpdate.album);
+      if (!albumDoc) throw new NotFoundError("Album not found");
+
+      if (albumDoc.author!.toString() != id) throw new UnauthorizedError("The creator of the album and the creator of the music must be the same");
+
+      toUpdate.cover = albumDoc.cover;
+      toUpdate.album = albumDoc._id;   
     }
 
     const updatedMusic = await Music.update(req.params.id, toUpdate);
