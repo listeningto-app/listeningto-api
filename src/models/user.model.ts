@@ -8,7 +8,6 @@ const userSchema = new mongoose.Schema<IUser>({
   username: {
     type: String,
     required: [true, "An username is required"],
-    unique: true,
     minlength: [5, "Username must be at least 5 characters long"],
     maxlength: [16, "Username must have 16 characters or less"],
     match: [/^[a-zA-Z0-9_]*$/, "Username can only contain underscores and alphanumerical characters"]
@@ -16,7 +15,6 @@ const userSchema = new mongoose.Schema<IUser>({
   email: {
     type: String,
     required: [true, "An email address is required"],
-    unique: true,
     match: [/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/, "The email address is not valid"]
   },
   password: {
@@ -36,9 +34,9 @@ userSchema.pre("save", function (this: IUser & mongoose.Document, next: Function
   if (!user.isModified("username")) return next();
 
   mongoose.model("UserModel").where("username").equals(user.username!).then((doc) => {
-      if (doc[0]) return next(new ConflictError("A user already exists with this username"));
-      next();
-    });
+    if (doc[0]) return next(new ConflictError("A user already exists with this username"));
+    next();
+  });
 });
 
 // Checar existência de usuário com o mesmo email

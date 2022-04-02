@@ -1,81 +1,54 @@
 import mongoose from "mongoose";
 import IAlbum from "../interfaces/album.interface";
 import albumModel from "../models/album.model";
-import { NotFoundError, BadRequestError } from "./errorHandling.service";
-
-// Import e criação do client do Redis
-import ioredis from 'ioredis';
-const redis = new ioredis(process.env.REDIS_PORT, {
-  host: process.env.REDIS_HOST,
-  password: process.env.REDIS_PASSWORD
-});
-
-// Função para uso interno nas operações READ e DELETE
-async function _getAlbumById(id: mongoose.Types.ObjectId | string) {
-  // Busca no database
-  let albumDoc = await albumModel.findById(id);
-  if (!albumDoc) throw new NotFoundError("User not found");
-  
-  // Inserção no Redis
-  await redis.set(albumDoc.id, JSON.stringify(albumDoc), "ex", 1800);
-  return albumDoc;
-}
-
-// Função para uso interno nas operações CREATE e UPDATE
-async function _validate(doc: mongoose.Document<IAlbum>) {
-  const errors = doc.validateSync();
-  if (!errors) return;
-
-  throw new BadRequestError(errors.errors[Object.keys(errors.errors)[0]].message);
-}
+import * as dbs from './database.service';
 
 // Operação CREATE
-async function _create(AlbumData: IAlbum) {
+async function _create(AlbumData: IAlbum): Promise<IAlbum> {
   const newAlbum = new albumModel(AlbumData);
-  await _validate(newAlbum);
+  await dbs.validate(newAlbum);
   await newAlbum.save();
 
-  await redis.set(newAlbum.id, JSON.stringify(newAlbum.toObject()), "ex", 1800);
+  await dbs.redisSET(newAlbum.id, JSON.stringify(newAlbum));
 
   return newAlbum.toObject();
 }
 
 // Operação READ
-async function _read(id: mongoose.Types.ObjectId | string) {
-  let albumDoc: string | mongoose.Document<IAlbum> | null;
+async function _read(id: string): Promise<IAlbum> {
+  let albumDoc: string | mongoose.Document & IAlbum | null;
 
   // Busca no Redis
-  albumDoc = await redis.get(id.toString());
+  albumDoc = await dbs.redisGET(id);
   if (albumDoc) return JSON.parse(albumDoc);
 
-  let doc = await _getAlbumById(id);
-  return doc.toObject();
+  albumDoc = await dbs.getDocumentById("AlbumModel", id);
+  return albumDoc.toObject();
 }
 
 // Operação UPDATE
-async function _update(newData: IAlbum, id: mongoose.Types.ObjectId | string) {
-  let album = await _getAlbumById(id);
+async function _update(id: string, newData: IAlbum): Promise<IAlbum> {
+  let albumDoc: mongoose.Document & IAlbum = await dbs.getDocumentById("AlbumModel", id);
 
-  if (newData.author) album.author = newData.author;
-  if (newData.name) album.name = newData.name;
-  if (newData.musics) album.musics = newData.musics;
-  if (newData.cover) album.cover = newData.cover;
+  if (newData.name) albumDoc.name = newData.name;
+  if (newData.musics) albumDoc.musics = newData.musics;
+  if (newData.cover) albumDoc.cover = newData.cover;
   
   // Verificação e atualização no database
-  await _validate(album);
-  await album.save();
+  await dbs.validate(albumDoc);
+  await albumDoc.save();
 
   // Atualização no Redis
-  await redis.set(album.id, JSON.stringify(album.toObject()), "ex", 1800);
+  await dbs.redisSET(id, JSON.stringify(albumDoc));;
 
-  return album.toObject();
+  return albumDoc.toObject();
 }
 
 // Operação DELETE
-async function _delete(id: mongoose.Types.ObjectId | string) {
-  let album = await _getAlbumById(id);
-  await album.delete();
-  await redis.del(id.toString());
+async function _delete(id: string): Promise<void> {
+  let albumDoc = await dbs.getDocumentById("AlbumModel", id);
+  await albumDoc.delete();
+  await dbs.redisDEL(id);
 
   return;
 }

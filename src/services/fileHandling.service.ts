@@ -10,6 +10,7 @@ import type fileupload from 'express-fileupload';
 
 async function fileHandling(FileType: string, file: fileupload.UploadedFile) {
   let relativePath: string = "";
+  let folder: string = "";
   const filename = `${file.md5}.${file.name.split(".").pop()}`;
 
   switch (FileType) {
@@ -23,20 +24,7 @@ async function fileHandling(FileType: string, file: fileupload.UploadedFile) {
         return existentFile.profilePic;
       }
 
-      // Encontrar diretório para escrever
-      const lastDir = (fs.readdirSync(join(__dirname, '../../', 'public', 'images'))).pop()!;
-      const files = fs.readdirSync(join(__dirname, '../../', 'public', 'images', lastDir));
-
-      if (files.length < 10000) {
-        relativePath = `/images/${lastDir}`;
-        break;
-      }
-      
-      // Criar novo diretório
-      const newDir = (parseInt(lastDir) + 1).toString();
-      relativePath = `images/${newDir}`
-      fs.mkdirSync(join(__dirname, '../../', 'public', relativePath));
-
+      folder = 'images';
       break;
     }
     case "Music": {
@@ -49,28 +37,26 @@ async function fileHandling(FileType: string, file: fileupload.UploadedFile) {
         let doc = await existentFile.populate<{ authors: IUser[] }>('authors');
         throw new ConflictError(`This music already exists: ${doc.authors[0].username} - ${doc.name}`);
       }
-
-      // Encontrar diretório para escrever
-      const lastDir = (fs.readdirSync(join(__dirname, '../../', 'public', 'musics'))).pop()!;
-      const files = fs.readdirSync(join(__dirname, '../../', 'public', 'musics', lastDir));
-
-      if (files.length < 10000) {
-        relativePath = `/musics/${lastDir}`;
-        break;
-      }
       
-      // Criar novo diretório
-      const newDir = (parseInt(lastDir) + 1).toString();
-      relativePath = `/musics/${newDir}`
-      fs.mkdirSync(join(__dirname, '../../', 'public', relativePath));
-
+      folder = 'musics'
       break;
     }
   }
 
-  file.mv(join(__dirname, '../../', 'public', relativePath, filename), (err) => {
-    if (err) throw err;
-  });
+  // Encontrar diretório para escrever
+  const lastDir = (fs.readdirSync(join(__dirname, '../../', 'public', folder))).pop()!;
+  const files = fs.readdirSync(join(__dirname, '../../', 'public', folder, lastDir));
+
+  if (files.length < 10000) {
+    relativePath = `/${folder}/${lastDir}`;
+  } else {
+    // Criar novo diretório
+    const newDir = (parseInt(lastDir) + 1).toString();
+    relativePath = `/${folder}/${newDir}`
+    fs.mkdirSync(join(__dirname, '../../', 'public', relativePath));
+  }
+
+  file.mv(join(__dirname, '../../', 'public', relativePath, filename));
 
   return `${relativePath}/${filename}`;
 }

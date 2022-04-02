@@ -1,11 +1,12 @@
 // Imports locais
 import fileHandling from '../services/fileHandling.service';
 import errorHandling, { BadRequestError, UnauthorizedError, NotFoundError } from '../services/errorHandling.service';
-import Music from '../services/music.service';
+import musicService from '../services/music.service';
 import jwtVerify from '../services/jwtVerify.service'
 import IMusic from '../interfaces/music.interface';
 import userModel from '../models/user.model';
 import albumModel from '../models/album.model';
+import IAlbum from '../interfaces/album.interface';
 
 // Imports de libraries
 import mongoose from 'mongoose';
@@ -17,16 +18,8 @@ const router = express.Router();
 // Operação GET - Obter música - Path /
 router.get("/:id", async (req, res) => {
   try {
-    let doc: mongoose.LeanDocument<IMusic>; 
-    const id: string | undefined = req.params.id;
-
-    if (!id) throw new BadRequestError("An ID must be provided");
-
-    // Busca do usuário
-    doc = await Music.read(id);
-
-    // Resposta
-    return res.status(200).json(doc);
+    const musicDoc = await musicService.read(req.params.id);
+    return res.status(200).json(musicDoc);
   } catch (e: any) { return errorHandling(e, res) }
 });
 
@@ -70,7 +63,7 @@ router.post("/", async (req, res) => {
 
     // Checagem de álbum
     if (album) {
-      const albumDoc = await albumModel.findById(album);
+      const albumDoc: mongoose.Document & IAlbum | null = await albumModel.findById(album);
       if (!albumDoc) throw new NotFoundError("Album not found");
 
       if (albumDoc.author!.toString() != id) throw new UnauthorizedError("The creator of the album and the creator of the music must be the same");
@@ -89,10 +82,8 @@ router.post("/", async (req, res) => {
       genre: genre
     }
 
-    const music = await Music.create(objForCreation);
-
-    // Resposta
-    return res.status(201).json(music);
+    const musicDoc = await musicService.create(objForCreation);
+    return res.status(201).json(musicDoc);
   } catch (e: any) { errorHandling(e, res) }
 });
 
@@ -100,12 +91,13 @@ router.post("/", async (req, res) => {
 router.patch("/:id", async (req, res) => {
   try {
     let auth = req.headers.authorization;
+
     // Verificação de auth
     if (!auth) throw new UnauthorizedError("An Authorization header must be provided with a auth token");
     auth = auth.split(" ")[1];
     const id = (await jwtVerify(auth)).id;
 
-    const musicDoc = await Music.read(req.params.id);
+    const musicDoc: IMusic = await musicService.read(req.params.id);
     if (musicDoc.authors![0].toString() != id) throw new UnauthorizedError("You are not the original creator of the music");
 
     let toUpdate: IMusic = {
@@ -138,9 +130,8 @@ router.patch("/:id", async (req, res) => {
       for(let i in uniqueAuthors) {
         if (uniqueAuthors[i].toString() == id) throw new BadRequestError("You cannot remove yourself from the authors");
 
-        const index = authors.findIndex((aid: mongoose.Types.ObjectId) => aid.toString() === uniqueAuthors[i].toString());
-        if (index === -1) authors.push(uniqueAuthors[i])
-        else authors.splice(index, 1);
+        const index = authors.findIndex((aid) => aid.toString() === uniqueAuthors[i].toString());
+        if (index === -1) { authors.push(uniqueAuthors[i]) } else { authors.splice(index, 1); }
       }
 
       toUpdate.authors = authors;
@@ -164,7 +155,7 @@ router.patch("/:id", async (req, res) => {
       toUpdate.album = albumDoc._id;   
     }
 
-    const updatedMusic = await Music.update(req.params.id, toUpdate);
+    const updatedMusic = await musicService.update(req.params.id, toUpdate);
     return res.status(200).json(updatedMusic);
   } catch (e: any) { errorHandling(e, res) }
 });
@@ -173,15 +164,16 @@ router.patch("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     let auth = req.headers.authorization;
+
     // Verificação de auth
     if (!auth) throw new UnauthorizedError("An Authorization header must be provided with a auth token");
     auth = auth.split(" ")[1];
     const id = (await jwtVerify(auth)).id;
 
-    const music = await Music.read(req.params.id);
-    if (music.authors!.shift()!.toString() != id) throw new UnauthorizedError("You are not the original creator of the music");
+    const musicDoc = await musicService.read(req.params.id);
+    if (musicDoc.authors!.shift()!.toString() != id) throw new UnauthorizedError("You are not the original creator of the music");
 
-    await Music.delete(req.params.id);
+    await musicService.delete(req.params.id);
     return res.status(204).end();
   } catch (e: any) { errorHandling(e, res) }
 });

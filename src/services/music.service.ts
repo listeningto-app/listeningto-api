@@ -1,80 +1,56 @@
 import mongoose from "mongoose";
 import musicModel from "../models/music.model";
 import IMusic from "../interfaces/music.interface";
-import { NotFoundError, BadRequestError } from "./errorHandling.service";
-
-// Import e criação do client do Redis
-import ioredis from 'ioredis';
-const redis = new ioredis(process.env.REDIS_PORT, {
-  host: process.env.REDIS_HOST,
-  password: process.env.REDIS_PASSWORD
-});
-
-async function _getMusicById(id: mongoose.Types.ObjectId | string) {
-  // Busca no database
-  let musicDoc = await musicModel.findById(id);
-  if (!musicDoc) throw new NotFoundError("User not found");
-
-  // Inserção no Redis
-  await redis.set(musicDoc.id, JSON.stringify(musicDoc.toObject()), "ex", 1800);
-  return musicDoc;
-}
-
-async function _validate(doc: mongoose.Document<IMusic>) {
-  const errors = doc.validateSync();
-  if (!errors) return;
-
-  throw new BadRequestError(errors.errors[Object.keys(errors.errors)[0]].message);
-}
+import * as dbs from './database.service';
 
 // Operação CREATE
-async function _create(MusicData: IMusic) {
-  if (typeof MusicData.name !== 'string') throw new BadRequestError("Music name must be of type string");
-
+async function _create(MusicData: IMusic): Promise<IMusic> {
   const newMusic = new musicModel(MusicData);
-  await _validate(newMusic);
+  await dbs.validate(newMusic);
   await newMusic.save();
 
-  await redis.set(newMusic.id, JSON.stringify(newMusic.toObject()), "ex", 1800);
+  await dbs.redisSET(newMusic.id, JSON.stringify(newMusic));
 
   return newMusic.toObject();
 }
 
 // Operação READ
-async function _read(id: mongoose.Types.ObjectId | string) {
-  let musicDoc: string | mongoose.Document<unknown, any, IMusic> & IMusic | null;
+async function _read(id: string): Promise<IMusic> {
+  let musicDoc: string | mongoose.Document & IMusic | null;
+
   // Busca no Redis
-  musicDoc = await redis.get(id.toString());
+  musicDoc = await dbs.redisGET(id);
   if (musicDoc) return JSON.parse(musicDoc);
 
-  musicDoc = await _getMusicById(id);
+  musicDoc = await dbs.getDocumentById("MusicModel", id);
   return musicDoc.toObject();
 }
 
 // Operação UPDATE
-async function _update(id: mongoose.Types.ObjectId | string, newData: IMusic) {
-  let music = await _getMusicById(id);
+async function _update(id: string, newData: IMusic): Promise<IMusic> {
+  let musicDoc: mongoose.Document & IMusic = await dbs.getDocumentById("MusicModel", id);
 
-  if (newData.name) music.name = newData.name;
-  if (newData.cover) music.cover = newData.cover;
-  if (newData.album) music.album = newData.album;
-  if (newData.authors) music.authors = newData.authors;
-  if (newData.genre) music.genre = newData.genre;
+  if (newData.name) musicDoc.name = newData.name;
+  if (newData.cover) musicDoc.cover = newData.cover;
+  if (newData.album) musicDoc.album = newData.album;
+  if (newData.authors) musicDoc.authors = newData.authors;
+  if (newData.genre) musicDoc.genre = newData.genre;
 
   // Verificação e atualização no database
-  await _validate(music);
-  await music.save();
+  await dbs.validate(musicDoc);
+  await musicDoc.save();
 
   // Atualização no Redis
-  await redis.set(music.id, JSON.stringify(music), "ex", 1800);
-  return music.toObject();
+  await dbs.redisSET(id, JSON.stringify(musicDoc));
+
+  return musicDoc.toObject();
 }
 
 // Operação DELETE
-async function _delete(id: mongoose.Types.ObjectId | string) {
-  let music = await _getMusicById(id);
-  await music.delete();
-  await redis.del(id.toString());
+async function _delete(id: string): Promise<void> {
+  let musicDoc = await dbs.getDocumentById("MusicModel", id);
+  await musicDoc.delete();
+  await dbs.redisDEL(id);
 
   return;
 }

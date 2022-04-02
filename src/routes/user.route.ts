@@ -1,5 +1,5 @@
 // Imports locais
-import User from '../services/user.service';
+import userService from '../services/user.service';
 import userModel from '../models/user.model';
 import errorHandling, { BadRequestError, UnauthorizedError, NotFoundError } from '../services/errorHandling.service';
 import jwtVerify from '../services/jwtVerify.service';
@@ -8,14 +8,7 @@ import fileHandling from '../services/fileHandling.service';
 
 // Imports de libraries
 import jwt from 'jsonwebtoken';
-import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-
-// Dotenv
-import { join } from 'path';
-import dotenv from 'dotenv';
-import { expand } from 'dotenv-expand';
-expand(dotenv.config({ path: join(__dirname, "../../.env") }));
 
 // Import e inicialização do Express
 import express from "express";
@@ -24,15 +17,8 @@ const router = express.Router();
 // Operação GET - Obter usuário - Path /
 router.get("/:id", async (req, res) => {
   try {
-    let doc: string | null | mongoose.LeanDocument<IUser>; 
-    const id: string | undefined = req.params.id;
-    if (!id) throw new BadRequestError("An ID must be provided");
-
-    // Busca do usuário
-    doc = await User.read(id);
-
-    // Resposta
-    return res.status(200).json(doc);
+    const userDoc = await userService.read(req.params.id);
+    return res.status(200).json(userDoc);
   } catch (e: any) { return errorHandling(e, res) }
 });
 
@@ -42,31 +28,30 @@ router.post("/", async (req, res) => {
     const { username, email, password }: IUser = req.body;
 
     // Inserção no database
-    const user = await User.create({ username: username, email: email, password: password });
+    const userDoc: IUser = await userService.create({ username: username, email: email, password: password });
 
     // Criação do JWT
-    const token: string = jwt.sign({ id: user.id }, process.env.JWT_SECRET!);
+    const token = jwt.sign({ id: userDoc._id!.toString() }, process.env.JWT_SECRET!);
 
-    // Resposta
-    return res.status(201).json({ auth: token, user });
+    return res.status(201).json({ auth: token, userDoc });
   } catch (e: any) { return errorHandling(e, res) }
 });
 
 // Operação PATCH - Atualizar usuário - Path /
 router.patch("/", async (req, res) => {
   try {
-    let toUpdate: IUser = {
-      username: req.body.username,
-      email: req.body.email,
-      password: req.body.password,
-      profilePic: undefined
-    }
     let auth: string | undefined = req.headers.authorization;
 
     // Verificação de auth
     if (!auth) throw new UnauthorizedError("An Authorization header must be provided with a auth token");
     auth = auth.split(" ")[1];
     const id = (await jwtVerify(auth)).id;
+
+    let toUpdate: IUser = {
+      username: req.body.username,
+      email: req.body.email,
+      password: req.body.password
+    }
 
     // Inserção da profile pic
     const profilePic = req.files?.profilePic;
@@ -76,10 +61,9 @@ router.patch("/", async (req, res) => {
     }
 
     // Atualização no database
-    const user = await User.update(id, toUpdate);
+    const userDoc = await userService.update(id, toUpdate);
 
-    // Resposta
-    return res.status(200).json(user);
+    return res.status(200).json(userDoc);
   } catch (e: any) { return errorHandling(e, res) };
 });
 
@@ -93,10 +77,7 @@ router.delete("/", async (req, res) => {
     auth = auth.split(" ")[1];
     const id = (await jwtVerify(auth)).id;
 
-    // Deletar do database
-    await User.delete(id);
-
-    // Resposta
+    await userService.delete(id);
     return res.status(204).end();
   } catch (e: any) { return errorHandling(e, res) }
 });
@@ -111,18 +92,17 @@ router.post("/login", async (req, res) => {
     if (!password) throw new BadRequestError("A password is required");
 
     // Checar database
-    const user = (await userModel.find({ $or: [{ username: username }, { email: email }] })).shift();
-    if (!user) throw new NotFoundError("No user with the informed username/email address");
+    const userDoc = (await userModel.find({ $or: [{ username: username }, { email: email }] })).shift();
+    if (!userDoc) throw new NotFoundError("No user with the informed username/email address");
 
     // Comparar senhas
-    const authenticated = await bcrypt.compare(password, user.password!);
+    const authenticated = await bcrypt.compare(password, userDoc.password!);
     if (!authenticated) throw new UnauthorizedError("Password incorrect");
 
     // Criação do JWT
-    const token: string = jwt.sign({ id: user.id }, process.env.JWT_SECRET!);
+    const token: string = jwt.sign({ id: userDoc.id }, process.env.JWT_SECRET!);
 
-    // Resposta
-    return res.status(200).json({ auth: token });
+    return res.status(200).json({ auth: token, userDoc });
   } catch (e: any) { return errorHandling(e, res) }
 });
 
