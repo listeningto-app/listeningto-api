@@ -47,9 +47,8 @@ async function _update(id: string, newData: IUser): Promise<IUser> {
 
 // Operação DELETE
 async function _delete(id: string): Promise<void> {
-  let userDoc = await dbs.getDocumentById("UserModel", id);
+  let userDoc: mongoose.Document & IUser = await dbs.getDocumentById("UserModel", id);
 
-  console.log(userDoc);
   await userDoc.delete();
   await dbs.redisDEL(id);
 

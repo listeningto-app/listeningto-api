@@ -101,7 +101,7 @@ router.patch("/:id", async (req, res) => {
       // Checagem das músicas
       for(let i in uniqueMusics) {
         let doc = await musicModel.findById(uniqueMusics[i]).catch(() => { throw new BadRequestError(`Id ${uniqueMusics[i]} is not valid`) });
-        if (!doc) throw new NotFoundError("Author not found");
+        if (!doc) throw new NotFoundError("Music not found");
   
         uniqueMusics[i] = new mongoose.Types.ObjectId(uniqueMusics[i]);
       }
@@ -110,8 +110,6 @@ router.patch("/:id", async (req, res) => {
       let musics = albumDoc.musics!;
 
       for(let i in uniqueMusics) {
-        if (uniqueMusics[i].toString() == id) throw new BadRequestError("You cannot remove yourself from the authors");
-
         const index = musics.findIndex((mid) => mid.toString() === uniqueMusics[i].toString());
         if (index === -1) musics.push(uniqueMusics[i])
         else musics.splice(index, 1);

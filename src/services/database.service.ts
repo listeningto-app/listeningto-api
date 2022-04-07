@@ -12,7 +12,7 @@ import { BadRequestError, NotFoundError } from "./errorHandling.service";
 // Obter documento de um model pelo ID
 export async function getDocumentById(modelname: string, id: string): Promise<mongoose.Document> {
   const doc = await mongoose.model(modelname).findById(id);
-  if (!doc) throw new NotFoundError("User not found");
+  if (!doc) throw new NotFoundError("Document not found");
 
   return doc;
 }
