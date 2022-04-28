@@ -4,12 +4,9 @@ import errorHandling, { BadRequestError, UnauthorizedError, NotFoundError } from
 import jwtVerify from '../services/jwtVerify.service';
 
 import IPlaylist from "../interfaces/playlist.interface";
-import IMusic from "../interfaces/music.interface";
-import IUser from "../interfaces/user.interface";
 
 import playlistModel from '../models/playlist.model';
 import musicModel from '../models/music.model';
-import userModel from '../models/user.model';
 
 import playlistService from '../services/playlist.service';
 
