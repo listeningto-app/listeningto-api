@@ -3,7 +3,7 @@ import IAlbum from "../interfaces/album.interface";
 
 const albumSchema = new mongoose.Schema<IAlbum>({
   author: {
-    type: [mongoose.Types.ObjectId],
+    type: mongoose.Types.ObjectId,
     required: [true, "The album's author is required"],
     ref: 'UserModel'
   },

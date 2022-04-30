@@ -14,7 +14,7 @@ import bcrypt from 'bcryptjs';
 import express from "express";
 const router = express.Router();
 
-// Operação GET - Obter usuário - Path /
+// Operação GET - Obter usuário - Path /:id
 router.get("/:id", async (req, res) => {
   try {
     const userDoc = await userService.read(req.params.id);
@@ -33,7 +33,7 @@ router.post("/", async (req, res) => {
     // Criação do JWT
     const token = jwt.sign({ id: userDoc._id!.toString() }, process.env.JWT_SECRET!);
 
-    return res.status(201).json({ auth: token, userDoc });
+    return res.status(201).json({ auth: token, user: userDoc });
   } catch (e: any) { return errorHandling(e, res) }
 });
 
@@ -63,7 +63,7 @@ router.patch("/", async (req, res) => {
     // Atualização no database
     const userDoc = await userService.update(id, toUpdate);
 
-    return res.status(200).json(userDoc);
+    return res.status(200).json({ user: userDoc });
   } catch (e: any) { return errorHandling(e, res) };
 });
 
@@ -102,7 +102,37 @@ router.post("/login", async (req, res) => {
     // Criação do JWT
     const token: string = jwt.sign({ id: userDoc.id }, process.env.JWT_SECRET!);
 
-    return res.status(200).json({ auth: token, userDoc });
+    return res.status(200).json({ auth: token, user: userDoc });
+  } catch (e: any) { return errorHandling(e, res) }
+});
+
+// Operação GET - Obter playlists do usuário - Path /:id/playlists
+router.get("/:id/playlists", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const playlists = await userService.playlists(id);
+
+    return res.status(200).json({ playlists: playlists });
+  } catch (e: any) { return errorHandling(e, res) }
+});
+
+// Operação GET - Obter músicas do usuário - Path /:id/musics
+router.get("/:id/musics", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const musics = await userService.musics(id);
+
+    return res.status(200).json({ musics: musics });
+  } catch (e: any) { return errorHandling(e, res) }
+});
+
+// Operação GET - Obter álbuns do usuário - Path /:id/albuns
+router.get("/:id/albuns", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const albuns = await userService.albuns(id);
+
+    return res.status(200).json({ albuns: albuns });
   } catch (e: any) { return errorHandling(e, res) }
 });
 

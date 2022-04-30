@@ -1,5 +1,11 @@
 import mongoose from 'mongoose';
+import IAlbum from '../interfaces/album.interface';
+import IMusic from '../interfaces/music.interface';
+import IPlaylist from '../interfaces/playlist.interface';
 import IUser from '../interfaces/user.interface';
+import albumModel from '../models/album.model';
+import musicModel from '../models/music.model';
+import playlistModel from '../models/playlist.model';
 import userModel from '../models/user.model';
 import * as dbs from './database.service';
 
@@ -55,9 +61,42 @@ async function _delete(id: string): Promise<void> {
   return;
 }
 
+// Obter playlists do usuário
+async function _playlists(id: string): Promise<IPlaylist[]> {
+  let playlists: IPlaylist[] = [];
+
+  const playlistDocs = await playlistModel.where("createdBy").equals(id);
+  playlistDocs.forEach((doc) => playlists.push(doc.toObject()));
+
+  return playlists;
+}
+
+// Obter músicas do usuário
+async function _musics(id: string) {
+  let musics: IMusic[] = [];
+
+  const musicDocs = await musicModel.where("authors").equals(id);
+  musicDocs.forEach((doc) => musics.push(doc.toObject()));
+
+  return musics;
+}
+
+// Obter álbuns do usuário
+async function _albuns(id: string) {
+  let albuns: IAlbum[] = [];
+
+  const albumDocs = await albumModel.where("author").equals(id);
+  albumDocs.forEach((doc) => albuns.push(doc.toObject()));
+
+  return albuns;
+}
+
 export = {
   create: _create,
   read: _read,
   update: _update,
-  delete: _delete
+  delete: _delete,
+  playlists: _playlists,
+  musics: _musics,
+  albuns: _albuns
 }
