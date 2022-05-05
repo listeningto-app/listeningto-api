@@ -1,7 +1,7 @@
 // Imports locais
 import fileHandling from '../services/fileHandling.service';
 import errorHandling, { BadRequestError, UnauthorizedError, NotFoundError } from '../services/errorHandling.service';
-import jwtVerify from '../services/jwtVerify.service';
+import authCheck from '../services/auth.service';
 
 import IPlaylist from "../interfaces/playlist.interface";
 
@@ -30,12 +30,8 @@ router.get("/:id", async (req, res) => {
 // Operação POST - Criar playlist - Path /
 router.post("/", async (req, res) => {
   try {
-    let auth: string | undefined = req.headers.authorization;
-
-    // Verificação de auth
-    if (!auth) throw new UnauthorizedError("An Authorization header must be provided with a auth token");
-    auth = auth.split(" ")[1];
-    const id = (await jwtVerify(auth)).id;
+    const auth = req.headers.authorization;
+    const id = (await authCheck(auth)).id;
 
     let { name }: IPlaylist = req.body;
     if (!name) throw new BadRequestError("A name for the playlist is required.");
@@ -55,12 +51,8 @@ router.post("/", async (req, res) => {
 // Operação PATCH - Atualizar playlist - Path /
 router.patch("/:id", async (req, res) => {
   try {
-    let auth = req.headers.authorization;
-
-    // Verificação de auth
-    if (!auth) throw new UnauthorizedError("An Authorization header must be provided with a auth token");
-    auth = auth.split(" ")[1];
-    const id = (await jwtVerify(auth)).id;
+    const auth = req.headers.authorization;
+    const id = (await authCheck(auth)).id;
 
     const playlistDoc: IPlaylist = await playlistService.read(req.params.id);
     if (playlistDoc.createdBy!.toString() != id) throw new UnauthorizedError("You are not the creator of the playlist");
@@ -115,12 +107,8 @@ router.patch("/:id", async (req, res) => {
 // Operação DELETE - Deletar playlist - Path /
 router.delete("/:id", async (req, res) => {
   try {
-    let auth = req.headers.authorization;
-
-    // Verificação de auth
-    if (!auth) throw new UnauthorizedError("An Authorization header must be provided with a auth token");
-    auth = auth.split(" ")[1];
-    const id = (await jwtVerify(auth)).id;
+    const auth = req.headers.authorization;
+    const id = (await authCheck(auth)).id;
 
     const playlistDoc = await playlistModel.findById(req.params.id);
     if (!playlistDoc) throw new NotFoundError("Playlist not found");

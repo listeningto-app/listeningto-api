@@ -2,7 +2,7 @@
 import userService from '../services/user.service';
 import userModel from '../models/user.model';
 import errorHandling, { BadRequestError, UnauthorizedError, NotFoundError } from '../services/errorHandling.service';
-import jwtVerify from '../services/jwtVerify.service';
+import authCheck from '../services/auth.service';
 import IUser from '../interfaces/user.interface';
 import fileHandling from '../services/fileHandling.service';
 
@@ -40,12 +40,8 @@ router.post("/", async (req, res) => {
 // Operação PATCH - Atualizar usuário - Path /
 router.patch("/", async (req, res) => {
   try {
-    let auth: string | undefined = req.headers.authorization;
-
-    // Verificação de auth
-    if (!auth) throw new UnauthorizedError("An Authorization header must be provided with a auth token");
-    auth = auth.split(" ")[1];
-    const id = (await jwtVerify(auth)).id;
+    const auth = req.headers.authorization;
+    const id = (await authCheck(auth)).id;
 
     let toUpdate: IUser = {
       username: req.body.username,
@@ -70,12 +66,8 @@ router.patch("/", async (req, res) => {
 // Operação DELETE - Deletar usuário - Path /
 router.delete("/", async (req, res) => {
   try {
-    let auth: string | undefined = req.headers.authorization;
-
-    // Verificação de auth
-    if (!auth) throw new UnauthorizedError("An Authorization header must be provided with a auth token");
-    auth = auth.split(" ")[1];
-    const id = (await jwtVerify(auth)).id;
+    const auth = req.headers.authorization;
+    const id = (await authCheck(auth)).id;
 
     await userService.delete(id);
     return res.status(204).end();

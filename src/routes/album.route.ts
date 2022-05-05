@@ -2,7 +2,7 @@
 import fileHandling from "../services/fileHandling.service";
 import albumService from "../services/album.service";
 import albumModel from "../models/album.model";
-import jwtVerify from "../services/jwtVerify.service";
+import authCheck from "../services/auth.service";
 import IAlbum from "../interfaces/album.interface";
 import errorHandling, { BadRequestError, NotFoundError, UnauthorizedError } from "../services/errorHandling.service";
 import musicModel from "../models/music.model";
@@ -25,12 +25,8 @@ router.get("/:id", async (req, res) => {
 // Operação POST - Criar álbum - Path /
 router.post("/", async (req, res) => {
   try {
-    let auth = req.headers.authorization;
-
-    // Verificação de auth
-    if (!auth) throw new UnauthorizedError("An Authorization header must be provided with a auth token");
-    auth = auth.split(" ")[1];
-    const id = (await jwtVerify(auth)).id;
+    const auth = req.headers.authorization;
+    const id = (await authCheck(auth)).id;
 
     let { name, musics }: IAlbum = req.body;
     const cover = req.files?.cover;
@@ -72,11 +68,8 @@ router.post("/", async (req, res) => {
 // Operação PATCH - Atualizar álbum - Path /
 router.patch("/:id", async (req, res) => {
   try {
-    // Autorização
-    let auth = req.headers.authorization;
-    if (!auth) throw new UnauthorizedError("An Authorization header must be provided with a auth token");
-    auth = auth.split(" ")[1];
-    const id = (await jwtVerify(auth)).id;
+    const auth = req.headers.authorization;
+    const id = (await authCheck(auth)).id;
 
     const albumDoc = await albumModel.findById(req.params.id);
 
@@ -132,12 +125,8 @@ router.patch("/:id", async (req, res) => {
 // Operação DELETE - Deletar álbum - Path /
 router.delete("/:id", async (req, res) => {
   try {
-    let auth = req.headers.authorization;
-
-    // Verificação de auth
-    if (!auth) throw new UnauthorizedError("An Authorization header must be provided with a auth token");
-    auth = auth.split(" ")[1];
-    const id = (await jwtVerify(auth)).id;
+    const auth = req.headers.authorization;
+    const id = (await authCheck(auth)).id;
 
     const albumDoc = await albumModel.findById(req.params.id);
     if (!albumDoc) throw new NotFoundError("Album not found");

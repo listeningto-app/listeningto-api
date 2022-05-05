@@ -2,7 +2,7 @@
 import fileHandling from '../services/fileHandling.service';
 import errorHandling, { BadRequestError, UnauthorizedError, NotFoundError } from '../services/errorHandling.service';
 import musicService from '../services/music.service';
-import jwtVerify from '../services/jwtVerify.service'
+import authCheck from '../services/auth.service'
 import IMusic from '../interfaces/music.interface';
 import userModel from '../models/user.model';
 import albumModel from '../models/album.model';
@@ -26,12 +26,8 @@ router.get("/:id", async (req, res) => {
 // Operação POST - Criar música - Path /
 router.post("/", async (req, res) => {
   try {
-    let auth: string | undefined = req.headers.authorization;
-
-    // Verificação de auth
-    if (!auth) throw new UnauthorizedError("An Authorization header must be provided with a auth token");
-    auth = auth.split(" ")[1];
-    const id = (await jwtVerify(auth)).id;
+    const auth = req.headers.authorization;
+    const id = (await authCheck(auth)).id;
 
     let { name, album, genre }: IMusic = req.body;
     const file = req.files?.file;
@@ -40,7 +36,7 @@ router.post("/", async (req, res) => {
     if (!file) throw new BadRequestError("The music file is required");
     if (!album && !cover) throw new BadRequestError("If the music does not refeers to an album, a cover is required");
 
-    let authors: (string | mongoose.Types.ObjectId)[] = [];
+    const authors: (string | mongoose.Types.ObjectId)[] = [];
     authors.unshift(id);
     if (req.body.authors) authors.push(...(Array.isArray(req.body.authors) ? req.body.authors : [req.body.authors]));
 
@@ -90,12 +86,8 @@ router.post("/", async (req, res) => {
 // Operação PATCH - Atualizar música - Path /
 router.patch("/:id", async (req, res) => {
   try {
-    let auth = req.headers.authorization;
-
-    // Verificação de auth
-    if (!auth) throw new UnauthorizedError("An Authorization header must be provided with a auth token");
-    auth = auth.split(" ")[1];
-    const id = (await jwtVerify(auth)).id;
+    const auth = req.headers.authorization;
+    const id = (await authCheck(auth)).id;
 
     const musicDoc: IMusic = await musicService.read(req.params.id);
     if (musicDoc.authors![0].toString() != id) throw new UnauthorizedError("You are not the original creator of the music");
@@ -124,7 +116,7 @@ router.patch("/:id", async (req, res) => {
         uniqueAuthors[i] = new mongoose.Types.ObjectId(uniqueAuthors[i]);
       }
 
-      let authors = musicDoc.authors!;
+      const authors = musicDoc.authors!;
 
       // Inserção ou remoção de autores
       for(let i in uniqueAuthors) {
@@ -163,12 +155,8 @@ router.patch("/:id", async (req, res) => {
 // Operação DELETE - Deletar música - Path /
 router.delete("/:id", async (req, res) => {
   try {
-    let auth = req.headers.authorization;
-
-    // Verificação de auth
-    if (!auth) throw new UnauthorizedError("An Authorization header must be provided with a auth token");
-    auth = auth.split(" ")[1];
-    const id = (await jwtVerify(auth)).id;
+    const auth = req.headers.authorization;
+    const id = (await authCheck(auth)).id;
 
     const musicDoc = await musicService.read(req.params.id);
     if (musicDoc.authors!.shift()!.toString() != id) throw new UnauthorizedError("You are not the original creator of the music");
