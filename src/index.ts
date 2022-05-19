@@ -23,7 +23,7 @@ app.use(express.static(join(__dirname, "../public")));
 
 app.use(fileupload());
 
-app.listen(process.env.DEV ? 3000 : 80, () => console.log("Conectado à porta 3000"));
+app.listen(8080, () => console.log("Conectado à porta 8080"));
 
 // Inicialização do Logger
 const logStream = fs.createWriteStream(join(__dirname, "../access.log"), { flags: "a" });
