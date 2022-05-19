@@ -32,6 +32,7 @@ async function _read(id: string): Promise<IUser> {
   return userDoc.toObject();
 }
 
+
 // Operação UPDATE
 async function _update(id: string, newData: IUser): Promise<IUser> {
   let userDoc: mongoose.Document & IUser = await dbs.getDocumentById("UserModel", id);
