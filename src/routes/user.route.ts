@@ -77,14 +77,15 @@ router.delete("/", async (req, res) => {
 // Operação POST - Login do usuário - Path /login
 router.post("/login", async (req, res) => {
   try {
-    const { username, email, password }: IUser = req.body;
+    const { password }: IUser = req.body;
+    const email_or_username: string | null = req.body.email_or_username;
 
     // Checar input
-    if (!username && !email) throw new BadRequestError("An email address or a username is required");
+    if (!email_or_username) throw new BadRequestError("An email address or a username is required");
     if (!password) throw new BadRequestError("A password is required");
 
     // Checar database
-    const userDoc = (await userModel.find({ $or: [{ username: username }, { email: email }] })).shift();
+    const userDoc = (await userModel.find({ $or: [{ username: email_or_username }, { email: email_or_username }] })).shift();
     if (!userDoc) throw new NotFoundError("No user with the informed username/email address");
 
     // Comparar senhas
