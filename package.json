@@ -4,7 +4,7 @@
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {
-    "dev": "cross-env DEV=true ts-node-dev --rs --respawn .",
+    "dev": "cross-env ts-node-dev --rs --respawn .",
     "test": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha --timeout 10000 -r ts-node/register 'src/test/**/*.spec.ts'"
   },
   "dependencies": {
@@ -19,6 +19,7 @@
     "morgan": "^1.10.0"
   },
   "devDependencies": {
+    "@faker-js/faker": "^6.3.1",
     "@types/bcryptjs": "^2.4.2",
     "@types/chai": "^4.3.0",
     "@types/chai-as-promised": "^7.1.5",
