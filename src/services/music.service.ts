@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import musicModel from "../models/music.model";
 import IMusic from "../interfaces/music.interface";
-import * as dbs from './database.service';
+import * as dbs from "./database.service";
 
 // Operação CREATE
 async function _create(MusicData: IMusic): Promise<IMusic> {
@@ -16,7 +16,7 @@ async function _create(MusicData: IMusic): Promise<IMusic> {
 
 // Operação READ
 async function _read(id: string): Promise<IMusic> {
-  let musicDoc: string | mongoose.Document & IMusic | null;
+  let musicDoc: string | (mongoose.Document & IMusic) | null;
 
   // Busca no Redis
   musicDoc = await dbs.redisGET(id);
@@ -28,7 +28,10 @@ async function _read(id: string): Promise<IMusic> {
 
 // Operação UPDATE
 async function _update(id: string, newData: IMusic): Promise<IMusic> {
-  let musicDoc: mongoose.Document & IMusic = await dbs.getDocumentById("MusicModel", id);
+  let musicDoc: mongoose.Document & IMusic = await dbs.getDocumentById(
+    "MusicModel",
+    id
+  );
 
   if (newData.name) musicDoc.name = newData.name;
   if (newData.cover) musicDoc.cover = newData.cover;
@@ -59,5 +62,5 @@ export = {
   create: _create,
   read: _read,
   update: _update,
-  delete: _delete
-}
+  delete: _delete,
+};

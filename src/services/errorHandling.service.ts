@@ -30,13 +30,13 @@ export class NotFoundError extends Error {
   }
 }
 
-import type express from 'express';
+import type express from "express";
 
 export default function errorHandling(error: Error, res: express.Response) {
   let statusCode: number;
 
-  switch(error.name) {
-    case "BadRequestError": { 
+  switch (error.name) {
+    case "BadRequestError": {
       statusCode = 400;
       break;
     }
@@ -58,5 +58,9 @@ export default function errorHandling(error: Error, res: express.Response) {
     }
   }
 
-  return res.status(statusCode).json({ message: statusCode == 500 ? "Internal server error" : error.message });
+  return res
+    .status(statusCode)
+    .json({
+      message: statusCode == 500 ? "Internal server error" : error.message,
+    });
 }

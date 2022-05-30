@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import IAlbum from "../interfaces/album.interface";
 import albumModel from "../models/album.model";
-import * as dbs from './database.service';
+import * as dbs from "./database.service";
 
 // Operação CREATE
 async function _create(AlbumData: IAlbum): Promise<IAlbum> {
@@ -16,7 +16,7 @@ async function _create(AlbumData: IAlbum): Promise<IAlbum> {
 
 // Operação READ
 async function _read(id: string): Promise<IAlbum> {
-  let albumDoc: string | mongoose.Document & IAlbum | null;
+  let albumDoc: string | (mongoose.Document & IAlbum) | null;
 
   // Busca no Redis
   albumDoc = await dbs.redisGET(id);
@@ -28,18 +28,21 @@ async function _read(id: string): Promise<IAlbum> {
 
 // Operação UPDATE
 async function _update(id: string, newData: IAlbum): Promise<IAlbum> {
-  let albumDoc: mongoose.Document & IAlbum = await dbs.getDocumentById("AlbumModel", id);
+  let albumDoc: mongoose.Document & IAlbum = await dbs.getDocumentById(
+    "AlbumModel",
+    id
+  );
 
   if (newData.name) albumDoc.name = newData.name;
   if (newData.musics) albumDoc.musics = newData.musics;
   if (newData.cover) albumDoc.cover = newData.cover;
-  
+
   // Verificação e atualização no database
   await dbs.validate(albumDoc);
   await albumDoc.save();
 
   // Atualização no Redis
-  await dbs.redisSET(id, JSON.stringify(albumDoc));;
+  await dbs.redisSET(id, JSON.stringify(albumDoc));
 
   return albumDoc.toObject();
 }
@@ -57,5 +60,5 @@ export = {
   create: _create,
   read: _read,
   update: _update,
-  delete: _delete
-}
+  delete: _delete,
+};

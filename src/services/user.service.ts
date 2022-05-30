@@ -1,13 +1,13 @@
-import mongoose from 'mongoose';
-import IAlbum from '../interfaces/album.interface';
-import IMusic from '../interfaces/music.interface';
-import IPlaylist from '../interfaces/playlist.interface';
-import IUser from '../interfaces/user.interface';
-import albumModel from '../models/album.model';
-import musicModel from '../models/music.model';
-import playlistModel from '../models/playlist.model';
-import userModel from '../models/user.model';
-import * as dbs from './database.service';
+import mongoose from "mongoose";
+import IAlbum from "../interfaces/album.interface";
+import IMusic from "../interfaces/music.interface";
+import IPlaylist from "../interfaces/playlist.interface";
+import IUser from "../interfaces/user.interface";
+import albumModel from "../models/album.model";
+import musicModel from "../models/music.model";
+import playlistModel from "../models/playlist.model";
+import userModel from "../models/user.model";
+import * as dbs from "./database.service";
 
 // Operação CREATE
 async function _create(UserData: IUser): Promise<IUser> {
@@ -22,7 +22,7 @@ async function _create(UserData: IUser): Promise<IUser> {
 
 // Operação READ
 async function _read(id: string): Promise<IUser> {
-  let userDoc: string | mongoose.Document & IUser | null;
+  let userDoc: string | (mongoose.Document & IUser) | null;
 
   // Busca no Redis
   userDoc = await dbs.redisGET(id);
@@ -34,13 +34,16 @@ async function _read(id: string): Promise<IUser> {
 
 // Operação UPDATE
 async function _update(id: string, newData: IUser): Promise<IUser> {
-  let userDoc: mongoose.Document & IUser = await dbs.getDocumentById("UserModel", id);
+  let userDoc: mongoose.Document & IUser = await dbs.getDocumentById(
+    "UserModel",
+    id
+  );
 
   if (newData.username) userDoc.username = newData.username;
   if (newData.email) userDoc.email = newData.email;
   if (newData.password) userDoc.password = newData.password;
   if (newData.profilePic) userDoc.profilePic = newData.profilePic;
-  
+
   // Verificação e atualização no database
   await dbs.validate(userDoc);
   await userDoc.save();
@@ -53,7 +56,10 @@ async function _update(id: string, newData: IUser): Promise<IUser> {
 
 // Operação DELETE
 async function _delete(id: string): Promise<void> {
-  let userDoc: mongoose.Document & IUser = await dbs.getDocumentById("UserModel", id);
+  let userDoc: mongoose.Document & IUser = await dbs.getDocumentById(
+    "UserModel",
+    id
+  );
 
   await userDoc.delete();
   await dbs.redisDEL(id);
@@ -98,5 +104,5 @@ export = {
   delete: _delete,
   playlists: _playlists,
   musics: _musics,
-  albuns: _albuns
-}
+  albuns: _albuns,
+};
