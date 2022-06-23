@@ -8,8 +8,6 @@ import musicService from "../services/music.service";
 import authCheck from "../services/auth.service";
 import IMusic from "../interfaces/music.interface";
 import userModel from "../models/user.model";
-import albumModel from "../models/album.model";
-import IAlbum from "../interfaces/album.interface";
 import mongoose from "mongoose";
 
 // Import e inicialização do Express
@@ -32,15 +30,11 @@ router.post("/", async (req, res) => {
     const auth = req.headers.authorization;
     const id = (await authCheck(auth)).id;
 
-    let { name, album, genre }: IMusic = req.body;
+    let { name, genre }: IMusic = req.body;
     const file = req.files?.file;
     const cover = req.files?.cover;
 
     if (!file) throw new BadRequestError("The music file is required");
-    if (!album && !cover)
-      throw new BadRequestError(
-        "If the music does not refeers to an album, a cover is required"
-      );
 
     const authors: (string | mongoose.Types.ObjectId)[] = [];
     authors.unshift(id);
@@ -67,39 +61,20 @@ router.post("/", async (req, res) => {
     }
 
     // Inserção de cover e arquivo da música
-    let coverPath = album
-      ? undefined
-      : cover
-      ? await fileHandling(
-          "Image",
-          Array.isArray(cover) ? cover.shift()! : cover
-        )
-      : undefined;
+    let coverPath;
+    if (cover) {
+      coverPath = await fileHandling("Image", Array.isArray(cover) ? cover.shift()! : cover);
+    }
+
     const filePath = await fileHandling(
       "Music",
       Array.isArray(file) ? file.shift()! : file
     );
 
-    // Checagem de álbum
-    if (album) {
-      const albumDoc: (mongoose.Document & IAlbum) | null =
-        await albumModel.findById(album);
-      if (!albumDoc) throw new NotFoundError("Album not found");
-
-      if (albumDoc.author!.toString() != id)
-        throw new UnauthorizedError(
-          "The creator of the album and the creator of the music must be the same"
-        );
-
-      coverPath = albumDoc.cover;
-      album = albumDoc._id;
-    }
-
     // Inserção no database
     const objForCreation: IMusic = {
       name: name,
       authors: uniqueAuthors,
-      album: album,
       file: filePath,
       cover: coverPath,
       genre: genre,
@@ -128,7 +103,6 @@ router.patch("/:id", async (req, res) => {
       name: req.body.name,
       authors: req.body.authors,
       genre: req.body.genre,
-      album: req.body.album,
     };
 
     // Atualização de autores
@@ -181,21 +155,6 @@ router.patch("/:id", async (req, res) => {
         "Image",
         Array.isArray(cover) ? cover.shift()! : cover
       );
-    }
-
-    // Atualização de álbum
-    if (toUpdate.album) {
-      // Checagem de álbum
-      const albumDoc = await albumModel.findById(toUpdate.album);
-      if (!albumDoc) throw new NotFoundError("Album not found");
-
-      if (albumDoc.author!.toString() != id)
-        throw new UnauthorizedError(
-          "The creator of the album and the creator of the music must be the same"
-        );
-
-      toUpdate.cover = albumDoc.cover;
-      toUpdate.album = albumDoc._id;
     }
 
     const updatedMusic = await musicService.update(req.params.id, toUpdate);

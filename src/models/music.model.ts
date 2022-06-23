@@ -13,10 +13,6 @@ const musicSchema = new mongoose.Schema<IMusic>(
       type: String,
       required: [true, "A name for the music is required"],
     },
-    album: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "AlbumModel",
-    },
     file: String,
     cover: String,
     genre: {
