@@ -1,8 +1,7 @@
 // Dotenv
 import { join } from "path";
 import dotenv from "dotenv";
-import { expand } from "dotenv-expand";
-expand(dotenv.config({ path: join(__dirname, "../.env") }));
+dotenv.config({ path: join(__dirname, "../.env") });
 
 // Imports
 import express from "express";

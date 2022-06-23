@@ -2,11 +2,6 @@ import { UnauthorizedError } from "./errorHandling.service";
 
 import jwt from "jsonwebtoken";
 
-import { join } from "path";
-import dotenv from "dotenv";
-import { expand } from "dotenv-expand";
-expand(dotenv.config({ path: join(__dirname, "../../.env") }));
-
 interface jwtToken {
   id: string;
 }

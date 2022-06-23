@@ -35,7 +35,6 @@ async function _update(id: string, newData: IMusic): Promise<IMusic> {
 
   if (newData.name) musicDoc.name = newData.name;
   if (newData.cover) musicDoc.cover = newData.cover;
-  if (newData.album) musicDoc.album = newData.album;
   if (newData.authors) musicDoc.authors = newData.authors;
   if (newData.genre) musicDoc.genre = newData.genre;
 

@@ -13,6 +13,7 @@ import bcrypt from "bcryptjs";
 
 // Import e inicialização do Express
 import express from "express";
+import IPlaylist from "../interfaces/playlist.interface";
 const router = express.Router();
 
 // Operação GET - Obter usuário - Path /:id
@@ -129,7 +130,17 @@ router.post("/login", async (req, res) => {
 router.get("/:id/playlists", async (req, res) => {
   try {
     const id = req.params.id;
-    const playlists = await userService.playlists(id);
+    const auth = req.headers.authorization;
+    let playlists: IPlaylist[] = await userService.playlists(id);
+
+    if (auth) {
+      const auth_id = (await authCheck(auth)).id;
+      if (id == auth_id) return res.status(200).json({ playlists: playlists });
+    }
+
+    playlists = playlists.filter((pl) => {
+      return pl.private == false;
+    });
 
     return res.status(200).json({ playlists: playlists });
   } catch (e: any) {
