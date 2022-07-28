@@ -183,4 +183,15 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+// Operação GET - Obter álbum da música - Path /:id/album
+router.get("/:id/album", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const album = await musicService.getAlbum(id);
+    return res.status(200).json(album);
+  } catch (e: any) {
+    errorHandling(e, res);
+  }
+});
+
 module.exports = router;

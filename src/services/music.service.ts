@@ -1,7 +1,9 @@
 import mongoose from "mongoose";
 import musicModel from "../models/music.model";
+import albumModel from "../models/album.model";
 import IMusic from "../interfaces/music.interface";
 import * as dbs from "./database.service";
+import IAlbum from "../interfaces/album.interface";
 
 // Operação CREATE
 async function _create(MusicData: IMusic): Promise<IMusic> {
@@ -57,9 +59,15 @@ async function _delete(id: string): Promise<void> {
   return;
 }
 
+async function _getAlbum(id: string): Promise<IAlbum> {
+  const albumDoc = await albumModel.find({ musics: id }).lean();
+  return albumDoc as IAlbum;
+}
+
 export = {
   create: _create,
   read: _read,
   update: _update,
   delete: _delete,
+  getAlbum: _getAlbum
 };

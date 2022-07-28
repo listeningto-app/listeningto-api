@@ -1,7 +1,7 @@
 // Esse arquivo cuida de funções que serão usadas em operações no database e no Redis
 
 import ioredis from "ioredis";
-const redis = new ioredis(process.env.REDIS_PORT, {
+const redis = new ioredis(parseInt(process.env.REDIS_PORT!), {
   host: process.env.REDIS_HOST,
   password: process.env.REDIS_PASSWORD,
 });
@@ -32,7 +32,7 @@ export async function validate(doc: mongoose.Document): Promise<void> {
 
 // Inserir item no Redis
 export async function redisSET(id: string, data: string): Promise<void> {
-  await redis.set(id, data, "ex", 1800);
+  await redis.set(id, data, "EX", 1800);
   return;
 }
 
