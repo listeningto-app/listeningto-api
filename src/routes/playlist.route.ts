@@ -87,7 +87,7 @@ router.patch("/:id", async (req, res) => {
         });
         if (!doc) throw new NotFoundError("Music not found");
 
-        uniqueMusics[i] = new mongoose.Types.ObjectId(uniqueMusics[i]);
+        // uniqueMusics[i] = new mongoose.Types.ObjectId(uniqueMusics[i]);
       }
 
       // Inserção ou remoção de músicas

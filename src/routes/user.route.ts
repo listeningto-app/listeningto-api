@@ -1,25 +1,31 @@
-import userService from "../services/user.service";
-import userModel from "../models/user.model";
-import errorHandling, {
-  BadRequestError,
-  UnauthorizedError,
-  NotFoundError,
-} from "../services/errorHandling.service";
+import UserService from "../services/user.service";
+import UserModel from "../models/user.model";
+import errorHandling, { BadRequestError, UnauthorizedError, NotFoundError } from "../services/errorHandling.service";
 import authCheck from "../services/auth.service";
 import IUser from "../interfaces/user.interface";
 import fileHandling from "../services/fileHandling.service";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import IPlaylist from "../interfaces/playlist.interface";
 
 // Import e inicialização do Express
 import express from "express";
-import IPlaylist from "../interfaces/playlist.interface";
 const router = express.Router();
 
 // Operação GET - Obter usuário - Path /:id
 router.get("/:id", async (req, res) => {
   try {
-    const userDoc = await userService.read(req.params.id);
+    const userDoc = (await UserService.read(req.params.id)).toObject();
+
+    if (req.headers.authorization) {
+      const token_id = (await authCheck(req.headers.authorization)).id;
+
+      if (userDoc._id.toString() == token_id) {
+        return res.status(200).json(userDoc);
+      }
+    }
+
+    delete userDoc["email"];
     return res.status(200).json(userDoc);
   } catch (e: any) {
     return errorHandling(e, res);
@@ -32,11 +38,11 @@ router.post("/", async (req, res) => {
     const { username, email, password }: IUser = req.body;
 
     // Inserção no database
-    const userDoc: IUser = await userService.create({
+    const userDoc = (await UserService.create({
       username: username,
       email: email,
       password: password,
-    });
+    })).toObject();
 
     // Criação do JWT
     const token = jwt.sign(
@@ -70,9 +76,9 @@ router.patch("/", async (req, res) => {
     }
 
     // Atualização no database
-    const userDoc = await userService.update(id, toUpdate);
+    const userDoc = (await UserService.update(id, toUpdate)).toObject();
 
-    return res.status(200).json({ user: userDoc });
+    return res.status(200).json(userDoc);
   } catch (e: any) {
     return errorHandling(e, res);
   }
@@ -84,7 +90,7 @@ router.delete("/", async (req, res) => {
     const auth = req.headers.authorization;
     const id = (await authCheck(auth)).id;
 
-    await userService.delete(id);
+    await UserService.delete(id);
     return res.status(204).end();
   } catch (e: any) {
     return errorHandling(e, res);
@@ -97,21 +103,11 @@ router.post("/login", async (req, res) => {
     const { email_or_username, password } = req.body;
 
     // Checar input
-    if (!email_or_username || !password)
-      throw new BadRequestError(
-        "An email address/username and password is required"
-      );
+    if (!email_or_username || !password) throw new BadRequestError("An email address/username and password is required");
 
     // Checar database
-    const userDoc = (
-      await userModel.find({
-        $or: [{ username: email_or_username }, { email: email_or_username }],
-      })
-    ).shift();
-    if (!userDoc)
-      throw new NotFoundError(
-        "No user with the informed username/email address"
-      );
+    const userDoc = await UserModel.findOne({ $or: [{ username: email_or_username }, { email: email_or_username }] });
+    if (!userDoc) throw new NotFoundError("No user with the informed username/email address");
 
     // Comparar senhas
     const authenticated = await bcrypt.compare(password, userDoc.password!);
@@ -131,7 +127,7 @@ router.get("/:id/playlists", async (req, res) => {
   try {
     const id = req.params.id;
     const auth = req.headers.authorization;
-    let playlists: IPlaylist[] = await userService.playlists(id);
+    let playlists: IPlaylist[] = await UserService.playlists(id);
 
     if (auth) {
       const auth_id = (await authCheck(auth)).id;
@@ -152,7 +148,7 @@ router.get("/:id/playlists", async (req, res) => {
 router.get("/:id/musics", async (req, res) => {
   try {
     const id = req.params.id;
-    const musics = await userService.musics(id);
+    const musics = await UserService.musics(id);
 
     return res.status(200).json({ musics: musics });
   } catch (e: any) {
@@ -161,10 +157,10 @@ router.get("/:id/musics", async (req, res) => {
 });
 
 // Operação GET - Obter álbuns do usuário - Path /:id/albuns
-router.get("/:id/albuns", async (req, res) => {
+router.get("/:id/albums", async (req, res) => {
   try {
     const id = req.params.id;
-    const albuns = await userService.albuns(id);
+    const albuns = await UserService.albuns(id);
 
     return res.status(200).json({ albuns: albuns });
   } catch (e: any) {

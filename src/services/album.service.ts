@@ -1,62 +1,69 @@
 import mongoose from "mongoose";
-import IAlbum from "../interfaces/album.interface";
-import albumModel from "../models/album.model";
-import * as dbs from "./database.service";
+import { IAlbum, IPopulatedAlbum } from "../interfaces/album.interface";
+import AlbumModel from "../models/album.model";
+import { NotFoundError } from "./errorHandling.service";
+
+// Populate album
+async function _populate(albumDoc: mongoose.Document<unknown, any, IAlbum> & IAlbum): Promise<IPopulatedAlbum> {
+  // Yeah, I need to find the document twice
+  // Idk how to implement the nested populate without doing this
+  const populatedDoc: IPopulatedAlbum = (await AlbumModel.findOne({ _id: albumDoc._id }).populate({ path: "musics", populate: { path: "authors" } }).populate({ path: "author" }).exec())!.toObject();
+    delete populatedDoc.author.email;
+
+    populatedDoc.musics.forEach((music, index) => {
+      populatedDoc.musics[index].authors.forEach((author, index2) => {
+        delete populatedDoc.musics[index].authors[index2].email;
+      });
+    });
+
+  return populatedDoc;
+}
 
 // Operação CREATE
-async function _create(AlbumData: IAlbum): Promise<IAlbum> {
-  const newAlbum = new albumModel(AlbumData);
-  await dbs.validate(newAlbum);
+async function _create(AlbumData: IAlbum): Promise<mongoose.Document<IAlbum>> {
+  const newAlbum = new AlbumModel(AlbumData);
+  await newAlbum.validate();
   await newAlbum.save();
 
-  await dbs.redisSET(newAlbum.id, JSON.stringify(newAlbum));
-
-  return newAlbum.toObject();
+  return newAlbum;
 }
 
 // Operação READ
-async function _read(id: string): Promise<IAlbum> {
-  let albumDoc: string | (mongoose.Document & IAlbum) | null;
+async function _read(id: string): Promise<mongoose.Document<IAlbum>> {
+  const albumDoc = await AlbumModel.findById(id);
+  if (!albumDoc) throw new NotFoundError("Album not found");
 
-  // Busca no Redis
-  albumDoc = await dbs.redisGET(id);
-  if (albumDoc) return JSON.parse(albumDoc);
-
-  albumDoc = await dbs.getDocumentById("AlbumModel", id);
-  return albumDoc.toObject();
+  return albumDoc;
 }
 
 // Operação UPDATE
-async function _update(id: string, newData: IAlbum): Promise<IAlbum> {
-  let albumDoc: mongoose.Document & IAlbum = await dbs.getDocumentById(
-    "AlbumModel",
-    id
-  );
+async function _update(id: string, newData: IAlbum): Promise<mongoose.Document<IAlbum>> {
+  const albumDoc = await AlbumModel.findById(id);
+  if (!albumDoc) throw new NotFoundError("Album not found");
 
   if (newData.name) albumDoc.name = newData.name;
   if (newData.musics) albumDoc.musics = newData.musics;
   if (newData.cover) albumDoc.cover = newData.cover;
 
   // Verificação e atualização no database
-  await dbs.validate(albumDoc);
+  await albumDoc.validate();
   await albumDoc.save();
 
-  // Atualização no Redis
-  await dbs.redisSET(id, JSON.stringify(albumDoc));
-
-  return albumDoc.toObject();
+  return albumDoc;
 }
 
 // Operação DELETE
 async function _delete(id: string): Promise<void> {
-  let albumDoc = await dbs.getDocumentById("AlbumModel", id);
+  const albumDoc = await AlbumModel.findById(id);
+  if (!albumDoc) throw new NotFoundError("Album not found");
+
   await albumDoc.delete();
-  await dbs.redisDEL(id);
 
   return;
 }
 
 export = {
+  populate: _populate,
   create: _create,
   read: _read,
   update: _update,

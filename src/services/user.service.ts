@@ -1,43 +1,35 @@
 import mongoose from "mongoose";
-import IAlbum from "../interfaces/album.interface";
-import IMusic from "../interfaces/music.interface";
+import { IAlbum, IPopulatedAlbum } from "../interfaces/album.interface";
+import { IMusic, IPopulatedMusic } from "../interfaces/music.interface";
 import IPlaylist from "../interfaces/playlist.interface";
 import IUser from "../interfaces/user.interface";
-import albumModel from "../models/album.model";
-import musicModel from "../models/music.model";
-import playlistModel from "../models/playlist.model";
-import userModel from "../models/user.model";
-import * as dbs from "./database.service";
+import AlbumModel from "../models/album.model";
+import MusicModel from "../models/music.model";
+import PlaylistModel from "../models/playlist.model";
+import UserModel from "../models/user.model";
+import { NotFoundError } from "./errorHandling.service";
 
 // Operação CREATE
-async function _create(UserData: IUser): Promise<IUser> {
-  const newUser = new userModel(UserData);
-  await dbs.validate(newUser);
+async function _create(UserData: IUser): Promise<mongoose.Document<unknown, any, IUser> & IUser> {
+  const newUser = new UserModel(UserData);
+  await newUser.validate();
   await newUser.save();
 
-  await dbs.redisSET(newUser.id, JSON.stringify(newUser));
-
-  return newUser.toObject();
+  return newUser;
 }
 
 // Operação READ
-async function _read(id: string): Promise<IUser> {
-  let userDoc: string | (mongoose.Document & IUser) | null;
+async function _read(id: string): Promise<mongoose.Document<unknown, any, IUser> & IUser> {
+  const userDoc = await UserModel.findById(id);
+  if (!userDoc) throw new NotFoundError("User not found");
 
-  // Busca no Redis
-  userDoc = await dbs.redisGET(id);
-  if (userDoc) return JSON.parse(userDoc);
-
-  userDoc = await dbs.getDocumentById("UserModel", id);
-  return userDoc.toObject();
+  return userDoc;
 }
 
 // Operação UPDATE
-async function _update(id: string, newData: IUser): Promise<IUser> {
-  let userDoc: mongoose.Document & IUser = await dbs.getDocumentById(
-    "UserModel",
-    id
-  );
+async function _update(id: string, newData: IUser): Promise<mongoose.Document<unknown, any, IUser> & IUser> {
+  const userDoc = await UserModel.findById(id);
+  if (!userDoc) throw new NotFoundError("User not found");
 
   if (newData.username) userDoc.username = newData.username;
   if (newData.email) userDoc.email = newData.email;
@@ -45,25 +37,18 @@ async function _update(id: string, newData: IUser): Promise<IUser> {
   if (newData.profilePic) userDoc.profilePic = newData.profilePic;
 
   // Verificação e atualização no database
-  await dbs.validate(userDoc);
+  await userDoc.validate();
   await userDoc.save();
 
-  // Atualização no Redis
-  await dbs.redisSET(id, JSON.stringify(userDoc));
-
-  return userDoc.toObject();
+  return userDoc;
 }
 
 // Operação DELETE
 async function _delete(id: string): Promise<void> {
-  let userDoc: mongoose.Document & IUser = await dbs.getDocumentById(
-    "UserModel",
-    id
-  );
+  const userDoc = await UserModel.findById(id);
+  if (!userDoc) throw new NotFoundError("User not found");
 
   await userDoc.delete();
-  await dbs.redisDEL(id);
-
   return;
 }
 
@@ -71,30 +56,47 @@ async function _delete(id: string): Promise<void> {
 async function _playlists(id: string): Promise<IPlaylist[]> {
   let playlists: IPlaylist[] = [];
 
-  const playlistDocs = await playlistModel.where("createdBy").equals(id);
+  const playlistDocs = await PlaylistModel.where("createdBy").equals(id);
   playlistDocs.forEach((doc) => playlists.push(doc.toObject()));
 
   return playlists;
 }
 
 // Obter músicas do usuário
-async function _musics(id: string) {
-  let musics: IMusic[] = [];
+async function _musics(id: string): Promise<IMusic[]> {
+  const musics: IMusic[] = [];
 
-  const musicDocs = await musicModel.where("authors").equals(id);
-  musicDocs.forEach((doc) => musics.push(doc.toObject()));
+  const musicDocs: IPopulatedMusic[] = await MusicModel.where("authors").equals(id).populate<{ authors: IUser[] }>("authors").lean();
+  musicDocs.forEach((doc) => {
+    doc.authors.forEach((author, index) => {
+      delete doc.authors[index].email;
+    });
+
+    musics.push(doc);
+  });
 
   return musics;
 }
 
 // Obter álbuns do usuário
-async function _albuns(id: string) {
-  let albuns: IAlbum[] = [];
+async function _albums(id: string): Promise<IAlbum[]> {
+  const albums: IAlbum[] = [];
 
-  const albumDocs = await albumModel.where("author").equals(id);
-  albumDocs.forEach((doc) => albuns.push(doc.toObject()));
+  const albumDocs = await AlbumModel.find({ author: id }).populate({ path: "musics", populate: { path: "authors" } }).populate({ path: "author" }).exec();
+  albumDocs.forEach((doc) => {
+    const jsonDoc: IPopulatedAlbum = doc.toObject();
+    delete jsonDoc.author.email;
 
-  return albuns;
+    jsonDoc.musics.forEach((music, index) => {
+      jsonDoc.musics![index].authors!.forEach((author, index2) => {
+        delete jsonDoc.musics![index].authors![index2].email;
+      });
+    });
+
+    albums.push(jsonDoc);
+  });
+
+  return albums;
 }
 
 export = {
@@ -104,5 +106,5 @@ export = {
   delete: _delete,
   playlists: _playlists,
   musics: _musics,
-  albuns: _albuns,
+  albuns: _albums,
 };

@@ -1,5 +1,4 @@
 import { UnauthorizedError } from "./errorHandling.service";
-
 import jwt from "jsonwebtoken";
 
 interface jwtToken {

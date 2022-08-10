@@ -2,12 +2,8 @@ import fileHandling from "../services/fileHandling.service";
 import albumService from "../services/album.service";
 import albumModel from "../models/album.model";
 import authCheck from "../services/auth.service";
-import IAlbum from "../interfaces/album.interface";
-import errorHandling, {
-  BadRequestError,
-  NotFoundError,
-  UnauthorizedError,
-} from "../services/errorHandling.service";
+import { IAlbum } from "../interfaces/album.interface";
+import errorHandling, { BadRequestError, NotFoundError, UnauthorizedError } from "../services/errorHandling.service";
 import musicModel from "../models/music.model";
 import mongoose from "mongoose";
 
@@ -53,8 +49,6 @@ router.post("/", async (req, res) => {
         throw new BadRequestError(`Id ${uniqueMusics[i]} is not valid`);
       });
       if (!musicDoc) throw new NotFoundError("Author not found");
-
-      uniqueMusics[i] = new mongoose.Types.ObjectId(uniqueMusics[i]);
     }
 
     // Inserção do cover
@@ -64,7 +58,7 @@ router.post("/", async (req, res) => {
     );
 
     // Inserção no database
-    const objForCreation = {
+    const objForCreation: IAlbum = {
       author: new mongoose.Types.ObjectId(id),
       name: name,
       musics: uniqueMusics,
@@ -113,8 +107,6 @@ router.patch("/:id", async (req, res) => {
           throw new BadRequestError(`Id ${uniqueMusics[i]} is not valid`);
         });
         if (!doc) throw new NotFoundError("Music not found");
-
-        uniqueMusics[i] = new mongoose.Types.ObjectId(uniqueMusics[i]);
       }
 
       // Inserção ou remoção de músicas

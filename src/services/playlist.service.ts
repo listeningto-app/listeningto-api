@@ -1,63 +1,48 @@
 import mongoose from "mongoose";
 import IPlaylist from "../interfaces/playlist.interface";
-import playlistModel from "../models/playlist.model";
-import * as dbs from "./database.service";
+import PlaylistModel from "../models/playlist.model";
+import { NotFoundError } from "./errorHandling.service";
 
 // Operação CREATE
-async function _create(PlaylistData: IPlaylist): Promise<IPlaylist> {
-  const newPlaylist = new playlistModel(PlaylistData);
-  await dbs.validate(newPlaylist);
+async function _create(PlaylistData: IPlaylist): Promise<mongoose.Document<IPlaylist>> {
+  const newPlaylist = new PlaylistModel(PlaylistData);
+  await newPlaylist.validate();
   await newPlaylist.save();
 
-  await dbs.redisSET(newPlaylist.id, JSON.stringify(newPlaylist));
-
-  return newPlaylist.toObject();
+  return newPlaylist;
 }
 
 // Operação READ
-async function _read(id: string): Promise<IPlaylist> {
-  let playlistDoc: string | (mongoose.Document & IPlaylist) | null;
+async function _read(id: string): Promise<mongoose.Document<IPlaylist>> {
+  const playlistDoc = await PlaylistModel.findById(id);
+  if (!playlistDoc) throw new NotFoundError("Playlist not found");
 
-  // Busca no Redis
-  playlistDoc = await dbs.redisGET(id);
-  if (playlistDoc) return JSON.parse(playlistDoc);
-
-  playlistDoc = await dbs.getDocumentById("PlaylistModel", id);
-  return playlistDoc.toObject();
+  return playlistDoc;
 }
 
 // Operação UPDATE
-async function _update(id: string, newData: IPlaylist): Promise<IPlaylist> {
-  let playlistDoc: mongoose.Document & IPlaylist = await dbs.getDocumentById(
-    "PlaylistModel",
-    id
-  );
+async function _update(id: string, newData: IPlaylist): Promise<mongoose.Document<IPlaylist>> {
+  const playlistDoc = await PlaylistModel.findById(id);
+  if (!playlistDoc) throw new NotFoundError("Playlist not found");
 
   if (newData.name) playlistDoc.name = newData.name;
   if (newData.musics) playlistDoc.musics = newData.musics;
   if (newData.cover) playlistDoc.cover = newData.cover;
-  if (typeof newData.private == "boolean")
-    playlistDoc.private = newData.private;
+  if (typeof newData.private == "boolean") playlistDoc.private = newData.private;
 
   // Verificação e atualização no database
-  await dbs.validate(playlistDoc);
+  await playlistDoc.validate();
   await playlistDoc.save();
 
-  // Atualização no Redis
-  await dbs.redisSET(id, JSON.stringify(playlistDoc));
-
-  return playlistDoc.toObject();
+  return playlistDoc;
 }
 
 // Operação DELETE
 async function _delete(id: string): Promise<void> {
-  let playlistDoc: mongoose.Document & IPlaylist = await dbs.getDocumentById(
-    "PlaylistModel",
-    id
-  );
-
+  const playlistDoc = await PlaylistModel.findById(id);
+  if (!playlistDoc) throw new NotFoundError("Playlist not found");
+  
   await playlistDoc.delete();
-  await dbs.redisDEL(id);
 
   return;
 }

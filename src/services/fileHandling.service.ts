@@ -1,9 +1,8 @@
 import { BadRequestError, ConflictError } from "./errorHandling.service";
 import fs from "fs";
 import { join } from "path";
-import userModel from "../models/user.model";
-import musicModel from "../models/music.model";
-import IUser from "../interfaces/user.interface";
+import UserModel from "../models/user.model";
+import MusicModel from "../models/music.model";
 
 import type fileupload from "express-fileupload";
 
@@ -14,50 +13,23 @@ async function fileHandling(FileType: string, file: fileupload.UploadedFile) {
 
   switch (FileType) {
     case "Image": {
-      const acceptedFileFormats = [
-        "image/jpeg",
-        "image/png",
-        "image/svg+xml",
-        "image/webp",
-      ];
-      if (!acceptedFileFormats.find((e) => e == file.mimetype))
-        throw new BadRequestError(
-          "The file must have one of the following formats: image/jpeg, image/png, image/svg+xml, image/webp"
-        );
+      const acceptedFileFormats = ["image/jpeg", "image/png", "image/svg+xml", "image/webp"];
+      if (!acceptedFileFormats.find((e) => e == file.mimetype)) throw new BadRequestError("The file must have one of the following formats: image/jpeg, image/png, image/svg+xml, image/webp");
 
       // Buscar por arquivo com mesma hash e extensão
-      const existentFile = (
-        await userModel.find({ profilePic: { $regex: filename } })
-      ).shift();
-      if (existentFile) {
-        return existentFile.profilePic;
-      }
+      const existentFile = await UserModel.findOne({ profilePic: { $regex: filename } });
+      if (existentFile) return existentFile.profilePic;
 
       folder = "images";
       break;
     }
     case "Music": {
-      const acceptedFileFormats = [
-        "audio/webm",
-        "audio/wav",
-        "audio/ogg",
-        "audio/mpeg",
-      ];
-      if (!acceptedFileFormats.find((e) => e == file.mimetype))
-        throw new BadRequestError(
-          "The file must have one of the following formats: audio/webm, audio/wav, audio/ogg"
-        );
+      const acceptedFileFormats = ["audio/webm", "audio/wav", "audio/ogg", "audio/mpeg"];
+      if (!acceptedFileFormats.find((e) => e == file.mimetype)) throw new BadRequestError("The file must have one of the following formats: audio/webm, audio/wav, audio/ogg");
 
       // Buscar por arquivo com mesma hash e extensão
-      const existentFile = await musicModel.findOne({
-        file: { $regex: filename },
-      });
-      if (existentFile) {
-        let doc = await existentFile.populate<{ authors: IUser[] }>("authors");
-        throw new ConflictError(
-          `This music already exists: ${doc.authors[0].username} - ${doc.name}`
-        );
-      }
+      const existentFile = await MusicModel.findOne({ file: { $regex: filename } });
+      if (existentFile) return existentFile.file;
 
       folder = "musics";
       break;
@@ -65,9 +37,7 @@ async function fileHandling(FileType: string, file: fileupload.UploadedFile) {
   }
 
   // Encontrar diretório para escrever
-  let lastDir = fs
-    .readdirSync(join(__dirname, "../../", "public", folder))
-    .pop();
+  let lastDir = fs.readdirSync(join(__dirname, "../../", "public", folder)).pop();
 
   if (!lastDir) {
     fs.mkdirSync(join(__dirname, "../../", "public", folder, "1"));

@@ -6,7 +6,6 @@ interface IUser {
   email?: string;
   password?: string;
   profilePic?: string;
-  verifiedArtist?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }

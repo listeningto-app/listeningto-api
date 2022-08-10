@@ -58,9 +58,5 @@ export default function errorHandling(error: Error, res: express.Response) {
     }
   }
 
-  return res
-    .status(statusCode)
-    .json({
-      message: statusCode == 500 ? "Internal server error" : error.message,
-    });
+  return res.status(statusCode).json({ message: statusCode == 500 ? "Internal server error" : error.message });
 }

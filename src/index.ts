@@ -41,5 +41,5 @@ app.use((req, res, next) => {
 // Routes do Express
 app.use("/user", require("./routes/user.route")); // Usuário
 app.use("/music", require("./routes/music.route")); // Música
-app.use("/album", require("./routes/album.route")); // Álbum
-app.use("/playlist", require("./routes/playlist.route")); // Playlist
+// app.use("/album", require("./routes/album.route")); // Álbum
+// app.use("/playlist", require("./routes/playlist.route")); // Playlist
