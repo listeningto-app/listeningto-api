@@ -9,6 +9,8 @@ import mongoose from "mongoose";
 import morgan from "morgan";
 import fileupload from "express-fileupload";
 import fs from "fs";
+import cron from 'node-cron';
+import deleteUnusedFiles from './services/deleteUnusedFiles.service'
 
 // Inicialização do Banco de Dados
 mongoose.connect(process.env.DB_URL_CONNECTION!);
@@ -30,6 +32,9 @@ const logStream = fs.createWriteStream(join(__dirname, "../access.log"), {
 });
 app.use(morgan("common", { stream: logStream }));
 
+// Cronograma da limpeza de arquivos inutilizados
+cron.schedule("0 0 * * *", deleteUnusedFiles);
+
 // Permitir CORS
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
@@ -41,5 +46,5 @@ app.use((req, res, next) => {
 // Routes do Express
 app.use("/user", require("./routes/user.route")); // Usuário
 app.use("/music", require("./routes/music.route")); // Música
-// app.use("/album", require("./routes/album.route")); // Álbum
+app.use("/album", require("./routes/album.route")); // Álbum
 // app.use("/playlist", require("./routes/playlist.route")); // Playlist

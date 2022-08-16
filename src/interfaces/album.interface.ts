@@ -12,6 +12,10 @@ export interface IAlbum {
   readonly updatedAt?: Date;
 }
 
+export interface IPatchAlbum extends IAlbum {
+  order?: number[];
+}
+
 export interface IPopulatedAlbum {
   readonly _id: mongoose.Types.ObjectId;
   author: IUser;

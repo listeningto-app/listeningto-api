@@ -7,13 +7,19 @@ const PlaylistSchema = new mongoose.Schema<IPlaylist>({
     ref: "UserModel",
     immutable: true,
   },
-  name: String,
+  name: {
+    type: String,
+    required: [true, "O nome da playlist é obrigatório"]
+  },
   musics: [{
     type: mongoose.Types.ObjectId,
     ref: "MusicModel",
   }],
   cover: String,
-  private: Boolean,
+  private: {
+    type: Boolean,
+    default: false
+  },
 }, { timestamps: true });
 
 export default mongoose.model("PlaylistModel", PlaylistSchema);

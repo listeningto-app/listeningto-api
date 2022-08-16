@@ -4,21 +4,21 @@ import { IAlbum } from "../interfaces/album.interface";
 const AlbumSchema = new mongoose.Schema<IAlbum>({
   author: {
     type: mongoose.Types.ObjectId,
-    required: [true, "The album's author is required"],
+    required: [true, "O autor do álbum é obrigatório"],
     ref: "UserModel",
+    immutable: true
   },
   name: {
     type: String,
-    required: [true, "The album's name is required"],
+    required: [true, "O nome do álbum é obrigatório"],
   },
   musics: [{
     type: mongoose.Types.ObjectId,
+    required: [true, "Um álbum deve ter, no mínimo, uma (1) música relacionada a ele"],
     ref: "MusicModel",
-    required: [true, "An album must have at least one music related to it"],
   }],
   cover: {
     type: String,
-    required: [true, "The album's cover is required"],
   },
 }, { timestamps: true });
 

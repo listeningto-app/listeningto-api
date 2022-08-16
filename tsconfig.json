@@ -6,7 +6,8 @@
     "strict": true,
     "sourceMap": true,
     "outDir": "build",
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "downlevelIteration": true
   },
   "include": ["src/**/*"],
   "exclude": ["src/test/**/*", "node_modules"]

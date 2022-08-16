@@ -6,26 +6,26 @@ import { ConflictError } from "../services/errorHandling.service";
 const UserSchema = new mongoose.Schema<IUser>({
   username: {
     type: String,
-    required: [true, "An username is required"],
-    minlength: [5, "Username must be at least 5 characters long"],
-    maxlength: [24, "Username must have 24 characters or less"],
-    match: [/^[a-zA-Z0-9_]*$/, "Username can only contain underscores and alphanumerical characters"],
+    required: [true, "Um nome de usuário é obrigatório"],
+    minlength: [5, "O nome de usuário deve ter, no mínimo, cinco (5) caracteres"],
+    maxlength: [24, "O nome de usuário não pode ter mais que vinte e quatro (24) caracteres"],
+    match: [/^[a-zA-Z0-9_]*$/, "O nome de usuário pode conter apenas caracteres alfanuméricos"],
   },
   email: {
     type: String,
-    required: [true, "An email address is required"],
+    required: [true, "Um endereço de email é obrigatório"],
     match: [
       /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
-      "The email address is not valid",
+      "O endereço de email é inválido",
     ],
   },
   password: {
     type: String,
-    required: [true, "A password is required"],
+    required: [true, "Uma senha é obrigatória"],
   },
   profilePic: {
     type: String,
-    default: "images/1/ac1ae8c497a46b4263f35bb0f60d8fc0.png",
+    default: "/images/1/ac1ae8c497a46b4263f35bb0f60d8fc0.png",
   }
 }, { timestamps: true });
 
@@ -35,7 +35,7 @@ UserSchema.pre("save", function (this: IUser & mongoose.Document, next: Function
     if (!user.isModified("username")) return next();
 
     mongoose.model("UserModel").where("username").equals(user.username!).then((doc) => {
-      if (doc[0]) return next(new ConflictError("A user already exists with this username"));
+      if (doc[0]) return next(new ConflictError("Um usuário de mesmo nome já existe"));
 
       next();
     });
@@ -48,7 +48,7 @@ UserSchema.pre("save", function (this: IUser & mongoose.Document, next: Function
     if (!user.isModified("email")) return next();
 
     mongoose.model("UserModel").where("email").equals(user.email!).then((doc) => {
-      if (doc[0]) return next(new ConflictError("A user already exists with this email address"));
+      if (doc[0]) return next(new ConflictError("Um usuário de mesmo endereço de email já existe"));
 
       next();
     });

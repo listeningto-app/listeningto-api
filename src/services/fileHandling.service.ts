@@ -1,4 +1,4 @@
-import { BadRequestError, ConflictError } from "./errorHandling.service";
+import { BadRequestError } from "./errorHandling.service";
 import fs from "fs";
 import { join } from "path";
 import UserModel from "../models/user.model";
@@ -14,7 +14,7 @@ async function fileHandling(FileType: string, file: fileupload.UploadedFile) {
   switch (FileType) {
     case "Image": {
       const acceptedFileFormats = ["image/jpeg", "image/png", "image/svg+xml", "image/webp"];
-      if (!acceptedFileFormats.find((e) => e == file.mimetype)) throw new BadRequestError("The file must have one of the following formats: image/jpeg, image/png, image/svg+xml, image/webp");
+      if (!acceptedFileFormats.find((e) => e == file.mimetype)) throw new BadRequestError("O arquivo deve ter um dos seguintes formatos: image/jpeg, image/png, image/svg+xml, image/webp");
 
       // Buscar por arquivo com mesma hash e extensão
       const existentFile = await UserModel.findOne({ profilePic: { $regex: filename } });
@@ -25,7 +25,7 @@ async function fileHandling(FileType: string, file: fileupload.UploadedFile) {
     }
     case "Music": {
       const acceptedFileFormats = ["audio/webm", "audio/wav", "audio/ogg", "audio/mpeg"];
-      if (!acceptedFileFormats.find((e) => e == file.mimetype)) throw new BadRequestError("The file must have one of the following formats: audio/webm, audio/wav, audio/ogg");
+      if (!acceptedFileFormats.find((e) => e == file.mimetype)) throw new BadRequestError("O arquivo deve ter um dos seguintes formatos: audio/webm, audio/wav, audio/ogg");
 
       // Buscar por arquivo com mesma hash e extensão
       const existentFile = await MusicModel.findOne({ file: { $regex: filename } });

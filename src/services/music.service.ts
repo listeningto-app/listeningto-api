@@ -54,6 +54,9 @@ async function _delete(id: string): Promise<void> {
   const musicDoc = await MusicModel.findById(id);
   if (!musicDoc) throw new NotFoundError("Music not found");
 
+  // Deletar referência do álbum à música
+  await AlbumModel.updateOne({ musics: id }, { $pullAll: { musics: [id] } });
+
   await musicDoc.delete();
   return;
 }

@@ -1,10 +1,10 @@
 import fileHandling from "../services/fileHandling.service";
-import albumService from "../services/album.service";
-import albumModel from "../models/album.model";
+import AlbumService from "../services/album.service";
+import AlbumModel from "../models/album.model";
 import authCheck from "../services/auth.service";
-import { IAlbum } from "../interfaces/album.interface";
+import { IAlbum, IPatchAlbum } from "../interfaces/album.interface";
 import errorHandling, { BadRequestError, NotFoundError, UnauthorizedError } from "../services/errorHandling.service";
-import musicModel from "../models/music.model";
+import MusicModel from "../models/music.model";
 import mongoose from "mongoose";
 
 // Import e inicialização do Express
@@ -14,7 +14,7 @@ const router = express.Router();
 // Operação GET - Obter álbum - Path /
 router.get("/:id", async (req, res) => {
   try {
-    const albumDoc = await albumService.read(req.params.id);
+    const albumDoc = await AlbumService.read(req.params.id);
     return res.status(200).json(albumDoc);
   } catch (e: any) {
     return errorHandling(e, res);
@@ -30,11 +30,7 @@ router.post("/", async (req, res) => {
     let { name, musics }: IAlbum = req.body;
     const cover = req.files?.cover;
 
-    if (!cover) throw new BadRequestError("A cover file is required");
-    if (!musics)
-      throw new BadRequestError(
-        "The musics that compose the album are required"
-      );
+    if (!musics) throw new BadRequestError("Um álbum deve ter, no mínimo, uma (1) música relacionada a ele");
 
     musics = Array.isArray(musics) ? musics : [musics];
 
@@ -45,17 +41,14 @@ router.post("/", async (req, res) => {
 
     // Checagem das músicas
     for (let i in uniqueMusics) {
-      let musicDoc = await musicModel.findById(uniqueMusics[i]).catch(() => {
-        throw new BadRequestError(`Id ${uniqueMusics[i]} is not valid`);
+      let musicDoc = await MusicModel.findById(uniqueMusics[i]).catch(() => {
+        throw new BadRequestError(`O ID ${uniqueMusics[i]} não é válido`);
       });
-      if (!musicDoc) throw new NotFoundError("Author not found");
+      if (!musicDoc) throw new NotFoundError("Usuário não encontrado");
     }
 
     // Inserção do cover
-    const coverPath = await fileHandling(
-      "Image",
-      Array.isArray(cover) ? cover.shift()! : cover
-    );
+    const coverPath = cover ? await fileHandling("Image", Array.isArray(cover) ? cover.shift()! : cover) : undefined;
 
     // Inserção no database
     const objForCreation: IAlbum = {
@@ -65,7 +58,7 @@ router.post("/", async (req, res) => {
       cover: coverPath,
     };
 
-    const albumDoc = await albumService.create(objForCreation);
+    const albumDoc = await AlbumService.create(objForCreation);
     return res.status(201).json(albumDoc);
   } catch (e: any) {
     return errorHandling(e, res);
@@ -78,23 +71,21 @@ router.patch("/:id", async (req, res) => {
     const auth = req.headers.authorization;
     const id = (await authCheck(auth)).id;
 
-    const albumDoc = await albumModel.findById(req.params.id);
+    const albumDoc = await AlbumModel.findById(req.params.id);
 
-    if (!albumDoc) throw new NotFoundError("Album not found");
-    if (albumDoc.author!.toString() != id)
-      throw new UnauthorizedError("You are not the creator of the album");
+    if (!albumDoc) throw new NotFoundError("Álbum não encontrado");
+    if (albumDoc.author!.toString() != id) throw new UnauthorizedError("Você não é o criador do álbum");
 
-    let toUpdate: IAlbum = {
+    let toUpdate: IPatchAlbum = {
       name: req.body.name,
       musics: req.body.musics,
+      order: req.body.order
     };
     const cover = req.files?.cover;
 
     // Atualização de músicas
     if (toUpdate.musics) {
-      toUpdate.musics = Array.isArray(toUpdate.musics)
-        ? toUpdate.musics
-        : [toUpdate.musics];
+      toUpdate.musics = Array.isArray(toUpdate.musics) ? toUpdate.musics : [toUpdate.musics];
 
       // Remoção de duplicatas de músicas
       let uniqueMusics = toUpdate.musics.filter((item, pos) => {
@@ -103,19 +94,18 @@ router.patch("/:id", async (req, res) => {
 
       // Checagem das músicas
       for (let i in uniqueMusics) {
-        let doc = await musicModel.findById(uniqueMusics[i]).catch(() => {
-          throw new BadRequestError(`Id ${uniqueMusics[i]} is not valid`);
+        let doc = await MusicModel.findById(uniqueMusics[i]).catch(() => {
+          throw new BadRequestError(`O ID ${uniqueMusics[i]} não é válido`);
         });
-        if (!doc) throw new NotFoundError("Music not found");
+        if (!doc) throw new NotFoundError("Música não encontrada");
       }
 
       // Inserção ou remoção de músicas
       let musics = albumDoc.musics!;
 
       for (let i in uniqueMusics) {
-        const index = musics.findIndex(
-          (mid) => mid.toString() === uniqueMusics[i].toString()
-        );
+        const index = musics.findIndex((mid) => mid.toString() === uniqueMusics[i].toString());
+
         if (index === -1) musics.push(uniqueMusics[i]);
         else musics.splice(index, 1);
       }
@@ -125,14 +115,45 @@ router.patch("/:id", async (req, res) => {
 
     // Atualização de cover
     if (cover) {
-      const coverPath = await fileHandling(
-        "Image",
-        Array.isArray(cover) ? cover.shift()! : cover
-      );
+      const coverPath = await fileHandling("Image", Array.isArray(cover) ? cover.shift()! : cover);
       toUpdate.cover = coverPath;
     }
 
-    const updatedAlbum = await albumService.update(req.params.id, toUpdate);
+    // Mudança da ordem das músicas
+    if (toUpdate.order) {
+      let oldMusics = toUpdate.musics ? toUpdate.musics : albumDoc.musics!;
+      let newMusics: IAlbum["musics"] = [];
+
+      // Remoção de indexes duplicados
+      let order = toUpdate.order.filter((item, pos) => {
+        return toUpdate.order!.indexOf(item) == pos;
+      });
+
+      // Checagem do limite de valor dos indexes, e remoção daqueles fora dele
+      order = order.filter((value) => {
+        return value < oldMusics.length && value >= 0;
+      });
+
+      // Adicionar no final da ordem as músicas não referenciadas
+      for (let i in oldMusics) {
+        const existsIn = order.find((val) => { return val == parseInt(i) });
+        console.log(existsIn);
+
+        if (typeof existsIn == 'undefined') {
+          order.push(parseInt(i));
+        }
+      }
+
+      // Reorganizar as músicas
+      for (let i in order) {
+        newMusics[i] = oldMusics[order[i]];
+      }
+
+      // Atualizar
+      toUpdate.musics = newMusics;
+    }
+
+    const updatedAlbum = await AlbumService.update(req.params.id, toUpdate);
     return res.status(200).json(updatedAlbum);
   } catch (e: any) {
     return errorHandling(e, res);
@@ -145,12 +166,11 @@ router.delete("/:id", async (req, res) => {
     const auth = req.headers.authorization;
     const id = (await authCheck(auth)).id;
 
-    const albumDoc = await albumModel.findById(req.params.id);
-    if (!albumDoc) throw new NotFoundError("Album not found");
-    if (albumDoc.author!.toString() != id)
-      throw new UnauthorizedError("You are not the creator of the album");
+    const albumDoc = await AlbumModel.findById(req.params.id);
+    if (!albumDoc) throw new NotFoundError("Álbum não encontrado");
+    if (albumDoc.author!.toString() != id) throw new UnauthorizedError("Você não é o criador do álbum");
 
-    await albumService.delete(req.params.id);
+    await AlbumService.delete(req.params.id);
     return res.status(204).end();
   } catch (e: any) {
     return errorHandling(e, res);

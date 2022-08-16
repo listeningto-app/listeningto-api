@@ -7,12 +7,14 @@ import AlbumModel from "../models/album.model";
 import MusicModel from "../models/music.model";
 import PlaylistModel from "../models/playlist.model";
 import UserModel from "../models/user.model";
-import { NotFoundError } from "./errorHandling.service";
+import { BadRequestError, NotFoundError } from "./errorHandling.service";
 
 // Operação CREATE
 async function _create(UserData: IUser): Promise<mongoose.Document<unknown, any, IUser> & IUser> {
   const newUser = new UserModel(UserData);
-  await newUser.validate();
+  await newUser.validate().catch((e: any) => {
+    throw new BadRequestError(e.message);
+  });
   await newUser.save();
 
   return newUser;
@@ -21,7 +23,7 @@ async function _create(UserData: IUser): Promise<mongoose.Document<unknown, any,
 // Operação READ
 async function _read(id: string): Promise<mongoose.Document<unknown, any, IUser> & IUser> {
   const userDoc = await UserModel.findById(id);
-  if (!userDoc) throw new NotFoundError("User not found");
+  if (!userDoc) throw new NotFoundError("Usuário não encontrado");
 
   return userDoc;
 }
@@ -29,7 +31,7 @@ async function _read(id: string): Promise<mongoose.Document<unknown, any, IUser>
 // Operação UPDATE
 async function _update(id: string, newData: IUser): Promise<mongoose.Document<unknown, any, IUser> & IUser> {
   const userDoc = await UserModel.findById(id);
-  if (!userDoc) throw new NotFoundError("User not found");
+  if (!userDoc) throw new NotFoundError("Usuário não encontrado");
 
   if (newData.username) userDoc.username = newData.username;
   if (newData.email) userDoc.email = newData.email;
@@ -37,7 +39,9 @@ async function _update(id: string, newData: IUser): Promise<mongoose.Document<un
   if (newData.profilePic) userDoc.profilePic = newData.profilePic;
 
   // Verificação e atualização no database
-  await userDoc.validate();
+  await userDoc.validate().catch((e: any) => {
+    throw new BadRequestError(e.message);
+  });;
   await userDoc.save();
 
   return userDoc;
@@ -46,7 +50,7 @@ async function _update(id: string, newData: IUser): Promise<mongoose.Document<un
 // Operação DELETE
 async function _delete(id: string): Promise<void> {
   const userDoc = await UserModel.findById(id);
-  if (!userDoc) throw new NotFoundError("User not found");
+  if (!userDoc) throw new NotFoundError("Usuário não encontrado");
 
   await userDoc.delete();
   return;

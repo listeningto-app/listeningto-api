@@ -7,11 +7,11 @@ interface jwtToken {
 
 export default async function authCheck(token: string | undefined) {
   try {
-    if (!token) throw new UnauthorizedError("An Authorization header must be provided with a auth token");
+    if (!token) throw new UnauthorizedError("Um header de autorização deve ser fornecido com um token");
     token = token.split(" ")[1];
 
     return jwt.verify(token, process.env.JWT_SECRET!) as jwtToken;
   } catch (e: any) {
-    throw new UnauthorizedError("Authorization token invalid");
+    throw new UnauthorizedError("Token de autorização inválido");
   }
 }

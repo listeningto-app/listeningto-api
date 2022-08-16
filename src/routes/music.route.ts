@@ -31,7 +31,7 @@ router.post("/", async (req, res) => {
     const file = req.files?.file;
     const cover = req.files?.cover;
 
-    if (!file) throw new BadRequestError("The music file is required");
+    if (!file) throw new BadRequestError("O arquivo da música é necessário");
 
     const authors: string[] = [];
     authors.unshift(id);
@@ -45,10 +45,10 @@ router.post("/", async (req, res) => {
     // Checagem de autores
     for (let i in uniqueAuthors) {
       let doc = await UserModel.findById(uniqueAuthors[i]).catch(() => {
-        throw new BadRequestError(`Id ${uniqueAuthors[i]} is not valid`);
+        throw new BadRequestError(`O ID ${uniqueAuthors[i]} não é válido`);
       });
 
-      if (!doc) throw new NotFoundError("User not found");
+      if (!doc) throw new NotFoundError("Usuário não encontrado");
     }
 
     // Inserção de cover e arquivo da música
@@ -79,7 +79,7 @@ router.patch("/:id", async (req, res) => {
     const id = (await authCheck(auth)).id;
 
     const musicDoc: IMusic = await MusicService.read(req.params.id);
-    if (musicDoc.authors![0].toString() != id) throw new UnauthorizedError("You are not the original creator of the music");
+    if (musicDoc.authors![0].toString() != id) throw new UnauthorizedError("Você não é o criador original da música");
 
     let toUpdate: IMusic = {
       name: req.body.name,
@@ -98,17 +98,17 @@ router.patch("/:id", async (req, res) => {
       // Checagem de autores
       for (let i in uniqueAuthors) {
         let doc = await UserModel.findById(uniqueAuthors[i]).catch(() => {
-          throw new BadRequestError(`Id ${uniqueAuthors[i]} is not valid`);
+          throw new BadRequestError(`O ID ${uniqueAuthors[i]} não é válido`);
         });
 
-        if (!doc) throw new NotFoundError("User not found");
+        if (!doc) throw new NotFoundError("Usuário não encontrado");
       }
 
       const authors = musicDoc.authors!;
 
       // Inserção ou remoção de autores
       for (let i in uniqueAuthors) {
-        if (uniqueAuthors[i].toString() == id) throw new BadRequestError("You cannot remove yourself from the authors");
+        if (uniqueAuthors[i].toString() == id) throw new BadRequestError("Você não pode se remover dos autores");
 
         const index = authors.findIndex((aid) => aid.toString() === uniqueAuthors[i].toString());
 
@@ -142,7 +142,7 @@ router.delete("/:id", async (req, res) => {
     const id = (await authCheck(auth)).id;
 
     const musicDoc = await MusicService.read(req.params.id);
-    if (musicDoc.authors!.shift()!.toString() != id) throw new UnauthorizedError("You are not the original creator of the music");
+    if (musicDoc.authors!.shift()!.toString() != id) throw new UnauthorizedError("Você não é o criador original da música");
 
     await MusicService.delete(req.params.id);
     return res.status(204).end();

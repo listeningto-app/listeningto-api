@@ -103,15 +103,15 @@ router.post("/login", async (req, res) => {
     const { email_or_username, password } = req.body;
 
     // Checar input
-    if (!email_or_username || !password) throw new BadRequestError("An email address/username and password is required");
+    if (!email_or_username || !password) throw new BadRequestError("Um endereço de email ou nome de usuário e uma senha são necessários");
 
     // Checar database
     const userDoc = await UserModel.findOne({ $or: [{ username: email_or_username }, { email: email_or_username }] });
-    if (!userDoc) throw new NotFoundError("No user with the informed username/email address");
+    if (!userDoc) throw new NotFoundError("Não existe um usuário com o nome ou email informado");
 
     // Comparar senhas
     const authenticated = await bcrypt.compare(password, userDoc.password!);
-    if (!authenticated) throw new UnauthorizedError("Password incorrect");
+    if (!authenticated) throw new UnauthorizedError("Senha incorreta");
 
     // Criação do JWT
     const token: string = jwt.sign({ id: userDoc.id }, process.env.JWT_SECRET!);
