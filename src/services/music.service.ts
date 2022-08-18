@@ -8,7 +8,7 @@ import IUser from "../interfaces/user.interface";
 
 // Populate music
 async function _populate(musicDoc: mongoose.Document<unknown, any, IMusic> & IMusic): Promise<IPopulatedMusic> {
-  const populatedDoc: IPopulatedMusic = await (await musicDoc.populate<{ authors: IUser[] }>("authors")).toObject();
+  const populatedDoc: IPopulatedMusic = (await musicDoc.populate<{ authors: IUser[] }>("authors")).toObject();
   populatedDoc.authors.forEach((author, index) => {
     delete populatedDoc.authors[index].email;
   });
@@ -28,7 +28,7 @@ async function _create(MusicData: IMusic): Promise<mongoose.Document<unknown, an
 // Operação READ
 async function _read(id: string): Promise<mongoose.Document<unknown, any, IMusic> & IMusic> {
   const musicDoc = await MusicModel.findById(id);
-  if (!musicDoc) throw new NotFoundError("Music not found");
+  if (!musicDoc) throw new NotFoundError("Música não encontrada");
 
   return musicDoc;
 }
@@ -36,7 +36,7 @@ async function _read(id: string): Promise<mongoose.Document<unknown, any, IMusic
 // Operação UPDATE
 async function _update(id: string, newData: IMusic): Promise<mongoose.Document<unknown, any, IMusic> & IMusic> {
   const musicDoc = await MusicModel.findById(id);
-  if (!musicDoc) throw new NotFoundError("Music not found");
+  if (!musicDoc) throw new NotFoundError("Música não encontrada");
 
   if (newData.name) musicDoc.name = newData.name;
   if (newData.cover) musicDoc.cover = newData.cover;
@@ -52,7 +52,7 @@ async function _update(id: string, newData: IMusic): Promise<mongoose.Document<u
 // Operação DELETE
 async function _delete(id: string): Promise<void> {
   const musicDoc = await MusicModel.findById(id);
-  if (!musicDoc) throw new NotFoundError("Music not found");
+  if (!musicDoc) throw new NotFoundError("Música não encontrada");
 
   // Deletar referência do álbum à música
   await AlbumModel.updateOne({ musics: id }, { $pullAll: { musics: [id] } });

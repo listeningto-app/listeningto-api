@@ -1,14 +1,10 @@
 import fileHandling from "../services/fileHandling.service";
-import errorHandling, {
-  BadRequestError,
-  UnauthorizedError,
-  NotFoundError,
-} from "../services/errorHandling.service";
+import errorHandling, { BadRequestError, UnauthorizedError, NotFoundError } from "../services/errorHandling.service";
 import authCheck from "../services/auth.service";
-import IPlaylist from "../interfaces/playlist.interface";
-import playlistModel from "../models/playlist.model";
-import musicModel from "../models/music.model";
-import playlistService from "../services/playlist.service";
+import { IPatchPlaylist, IPlaylist } from "../interfaces/playlist.interface";
+import PlaylistModel from "../models/playlist.model";
+import MusicModel from "../models/music.model";
+import PlaylistService from "../services/playlist.service";
 import mongoose from "mongoose";
 
 // Import e inicialização do Express
@@ -18,9 +14,8 @@ const router = express.Router();
 // Operação GET - Obter playlist - Path /
 router.get("/:id", async (req, res) => {
   try {
-    let playlistDoc = await playlistService.read(req.params.id);
-    if (playlistDoc.private)
-      throw new UnauthorizedError("The requested playlist is private");
+    let playlistDoc = await PlaylistService.populate(await PlaylistService.read(req.params.id));
+    if (playlistDoc.private) throw new UnauthorizedError("A playlist requisitada é privada");
 
     return res.status(200).json(playlistDoc);
   } catch (e: any) {
@@ -35,8 +30,7 @@ router.post("/", async (req, res) => {
     const id = (await authCheck(auth)).id;
 
     let { name }: IPlaylist = req.body;
-    if (!name)
-      throw new BadRequestError("A name for the playlist is required.");
+    if (!name) throw new BadRequestError("Um nome para a playlist é obrigatório");
 
     let objForCreation: IPlaylist = {
       createdBy: new mongoose.Types.ObjectId(id),
@@ -45,7 +39,7 @@ router.post("/", async (req, res) => {
       private: false,
     };
 
-    const playlistDoc = await playlistService.create(objForCreation);
+    const playlistDoc = await PlaylistService.populate(await PlaylistService.create(objForCreation));
     return res.status(201).json(playlistDoc);
   } catch (e: any) {
     return errorHandling(e, res);
@@ -58,22 +52,20 @@ router.patch("/:id", async (req, res) => {
     const auth = req.headers.authorization;
     const id = (await authCheck(auth)).id;
 
-    const playlistDoc: IPlaylist = await playlistService.read(req.params.id);
-    if (playlistDoc.createdBy!.toString() != id)
-      throw new UnauthorizedError("You are not the creator of the playlist");
+    const playlistDoc: IPlaylist = await PlaylistService.read(req.params.id);
+    if (playlistDoc.createdBy!.toString() != id) throw new UnauthorizedError("Você não é o criador da playlist");
 
-    let toUpdate: IPlaylist = {
+    let toUpdate: IPatchPlaylist = {
       name: req.body.name,
       musics: req.body.musics,
       private: req.body.private,
+      order: req.body.order
     };
     let cover = req.files?.cover;
 
     // Atualização de músicas
     if (toUpdate.musics) {
-      toUpdate.musics = Array.isArray(toUpdate.musics)
-        ? toUpdate.musics
-        : [toUpdate.musics];
+      toUpdate.musics = Array.isArray(toUpdate.musics) ? toUpdate.musics : [toUpdate.musics];
 
       // Remoção de duplicatas de músicas
       let uniqueMusics = toUpdate.musics.filter((item, pos) => {
@@ -82,21 +74,17 @@ router.patch("/:id", async (req, res) => {
 
       // Checagem das músicas
       for (let i in uniqueMusics) {
-        let doc = await musicModel.findById(uniqueMusics[i]).catch(() => {
-          throw new BadRequestError(`Id ${uniqueMusics[i]} is not valid`);
+        let doc = await MusicModel.findById(uniqueMusics[i]).catch(() => {
+          throw new BadRequestError(`O ID ${uniqueMusics[i]} não é válido`);
         });
-        if (!doc) throw new NotFoundError("Music not found");
-
-        // uniqueMusics[i] = new mongoose.Types.ObjectId(uniqueMusics[i]);
+        if (!doc) throw new NotFoundError("Música não encontrada");
       }
 
       // Inserção ou remoção de músicas
       let musics = playlistDoc.musics!;
 
       for (let i in uniqueMusics) {
-        const index = musics.findIndex(
-          (mid) => mid.toString() === uniqueMusics[i].toString()
-        );
+        const index = musics.findIndex((mid) => mid.toString() === uniqueMusics[i].toString());
         if (index === -1) musics.push(uniqueMusics[i]);
         else musics.splice(index, 1);
       }
@@ -106,17 +94,45 @@ router.patch("/:id", async (req, res) => {
 
     // Atualização de cover
     if (cover) {
-      const coverPath = await fileHandling(
-        "Image",
-        Array.isArray(cover) ? cover.shift()! : cover
-      );
+      const coverPath = await fileHandling("Image", Array.isArray(cover) ? cover.shift()! : cover);
       toUpdate.cover = coverPath;
     }
 
-    const updatedPlaylist = await playlistService.update(
-      req.params.id,
-      toUpdate
-    );
+    // Mudança da ordem das músicas
+    if (toUpdate.order) {
+      let oldMusics = toUpdate.musics ? toUpdate.musics : playlistDoc.musics!;
+      let newMusics: IPlaylist["musics"] = [];
+
+      // Remoção de indexes duplicados
+      let order = toUpdate.order.filter((item, pos) => {
+        return toUpdate.order!.indexOf(item) == pos;
+      });
+
+      // Checagem do limite de valor dos indexes, e remoção daqueles fora dele
+      order = order.filter((value) => {
+        return value < oldMusics.length && value >= 0;
+      });
+
+      // Adicionar no final da ordem as músicas não referenciadas
+      for (let i in oldMusics) {
+        const existsIn = order.find((val) => { return val == parseInt(i) });
+        console.log(existsIn);
+
+        if (typeof existsIn == 'undefined') {
+          order.push(parseInt(i));
+        }
+      }
+
+      // Reorganizar as músicas
+      for (let i in order) {
+        newMusics[i] = oldMusics[order[i]];
+      }
+
+      // Atualizar
+      toUpdate.musics = newMusics;
+    }
+
+    const updatedPlaylist = await PlaylistService.populate(await PlaylistService.update(req.params.id, toUpdate));
     return res.status(200).json(updatedPlaylist);
   } catch (e: any) {
     return errorHandling(e, res);
@@ -129,12 +145,11 @@ router.delete("/:id", async (req, res) => {
     const auth = req.headers.authorization;
     const id = (await authCheck(auth)).id;
 
-    const playlistDoc = await playlistModel.findById(req.params.id);
-    if (!playlistDoc) throw new NotFoundError("Playlist not found");
-    if (playlistDoc.createdBy!.toString() != id)
-      throw new UnauthorizedError("You are not the creator of the playlist");
+    const playlistDoc = await PlaylistModel.findById(req.params.id);
+    if (!playlistDoc) throw new NotFoundError("Playlist não encontrada");
+    if (playlistDoc.createdBy!.toString() != id) throw new UnauthorizedError("Você não é o criador da playlist");
 
-    await playlistService.delete(req.params.id);
+    await PlaylistService.delete(req.params.id);
     return res.status(204).end();
   } catch (e: any) {
     return errorHandling(e, res);

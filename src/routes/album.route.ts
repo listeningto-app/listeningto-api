@@ -2,7 +2,7 @@ import fileHandling from "../services/fileHandling.service";
 import AlbumService from "../services/album.service";
 import AlbumModel from "../models/album.model";
 import authCheck from "../services/auth.service";
-import { IAlbum, IPatchAlbum } from "../interfaces/album.interface";
+import { IAlbum, IPatchAlbum, IPopulatedAlbum } from "../interfaces/album.interface";
 import errorHandling, { BadRequestError, NotFoundError, UnauthorizedError } from "../services/errorHandling.service";
 import MusicModel from "../models/music.model";
 import mongoose from "mongoose";
@@ -14,7 +14,7 @@ const router = express.Router();
 // Operação GET - Obter álbum - Path /
 router.get("/:id", async (req, res) => {
   try {
-    const albumDoc = await AlbumService.read(req.params.id);
+    const albumDoc: IPopulatedAlbum = await AlbumService.populate(await AlbumService.read(req.params.id));
     return res.status(200).json(albumDoc);
   } catch (e: any) {
     return errorHandling(e, res);
@@ -58,7 +58,7 @@ router.post("/", async (req, res) => {
       cover: coverPath,
     };
 
-    const albumDoc = await AlbumService.create(objForCreation);
+    const albumDoc: IPopulatedAlbum = await AlbumService.populate(await AlbumService.create(objForCreation));
     return res.status(201).json(albumDoc);
   } catch (e: any) {
     return errorHandling(e, res);
@@ -153,7 +153,7 @@ router.patch("/:id", async (req, res) => {
       toUpdate.musics = newMusics;
     }
 
-    const updatedAlbum = await AlbumService.update(req.params.id, toUpdate);
+    const updatedAlbum: IPopulatedAlbum = await AlbumService.populate(await AlbumService.update(req.params.id, toUpdate));
     return res.status(200).json(updatedAlbum);
   } catch (e: any) {
     return errorHandling(e, res);

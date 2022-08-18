@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import IPlaylist from "../interfaces/playlist.interface";
+import { IPlaylist } from "../interfaces/playlist.interface";
 
 const PlaylistSchema = new mongoose.Schema<IPlaylist>({
   createdBy: {

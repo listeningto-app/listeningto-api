@@ -6,7 +6,7 @@ import IUser from "../interfaces/user.interface";
 import fileHandling from "../services/fileHandling.service";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import IPlaylist from "../interfaces/playlist.interface";
+import { IPlaylist } from "../interfaces/playlist.interface";
 
 // Import e inicialização do Express
 import express from "express";

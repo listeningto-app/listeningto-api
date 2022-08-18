@@ -7,11 +7,11 @@ import PlaylistModel from '../models/playlist.model'
 
 async function deleteUnusedFiles() {
   // Obter todos os arquivos em public
-  let files = glob.sync("../public/**/*", { nodir: true });
+  let files = glob.sync("public/**/*", { nodir: true });
 
   // Remover o '../public' da string
   files.forEach((file, index) => {
-    file = file.slice(9);
+    file = file.slice(6);
     files[index] = file;
   });
 
@@ -39,7 +39,7 @@ async function deleteUnusedFiles() {
     if (playlistDoc) continue;
 
     console.log(`Deleting: ${file}`);
-    fs.unlink(`../public${file}`, (err) => {
+    fs.unlink(`public${file}`, (err) => {
       if (err) throw err;
     });
   }

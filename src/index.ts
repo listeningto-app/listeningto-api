@@ -9,7 +9,7 @@ import mongoose from "mongoose";
 import morgan from "morgan";
 import fileupload from "express-fileupload";
 import fs from "fs";
-import cron from 'node-cron';
+import { CronJob } from 'cron';
 import deleteUnusedFiles from './services/deleteUnusedFiles.service'
 
 // Inicialização do Banco de Dados
@@ -33,7 +33,7 @@ const logStream = fs.createWriteStream(join(__dirname, "../access.log"), {
 app.use(morgan("common", { stream: logStream }));
 
 // Cronograma da limpeza de arquivos inutilizados
-cron.schedule("0 0 * * *", deleteUnusedFiles);
+new CronJob("0 0 * * *", deleteUnusedFiles, null, true, "America/Sao_Paulo");
 
 // Permitir CORS
 app.use((req, res, next) => {
@@ -47,4 +47,4 @@ app.use((req, res, next) => {
 app.use("/user", require("./routes/user.route")); // Usuário
 app.use("/music", require("./routes/music.route")); // Música
 app.use("/album", require("./routes/album.route")); // Álbum
-// app.use("/playlist", require("./routes/playlist.route")); // Playlist
+app.use("/playlist", require("./routes/playlist.route")); // Playlist

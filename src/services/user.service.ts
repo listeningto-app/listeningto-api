@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { IAlbum, IPopulatedAlbum } from "../interfaces/album.interface";
 import { IMusic, IPopulatedMusic } from "../interfaces/music.interface";
-import IPlaylist from "../interfaces/playlist.interface";
+import { IPlaylist } from "../interfaces/playlist.interface";
 import IUser from "../interfaces/user.interface";
 import AlbumModel from "../models/album.model";
 import MusicModel from "../models/music.model";

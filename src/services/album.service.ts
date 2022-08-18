@@ -3,24 +3,22 @@ import { IAlbum, IPopulatedAlbum } from "../interfaces/album.interface";
 import AlbumModel from "../models/album.model";
 import { NotFoundError } from "./errorHandling.service";
 
-// Populate album
+// Popular álbum
 async function _populate(albumDoc: mongoose.Document<unknown, any, IAlbum> & IAlbum): Promise<IPopulatedAlbum> {
-  // Yeah, I need to find the document twice
-  // Idk how to implement the nested populate without doing this
   const populatedDoc: IPopulatedAlbum = (await AlbumModel.findOne({ _id: albumDoc._id }).populate({ path: "musics", populate: { path: "authors" } }).populate({ path: "author" }).exec())!.toObject();
-    delete populatedDoc.author.email;
+  delete populatedDoc.author.email;
 
-    populatedDoc.musics.forEach((music, index) => {
-      populatedDoc.musics[index].authors.forEach((author, index2) => {
-        delete populatedDoc.musics[index].authors[index2].email;
-      });
+  populatedDoc.musics.forEach((music, index) => {
+    populatedDoc.musics[index].authors.forEach((author, index2) => {
+      delete populatedDoc.musics[index].authors[index2].email;
     });
+  });
 
   return populatedDoc;
 }
 
 // Operação CREATE
-async function _create(AlbumData: IAlbum): Promise<mongoose.Document<IAlbum>> {
+async function _create(AlbumData: IAlbum): Promise<mongoose.Document<unknown, any, IAlbum> & IAlbum> {
   const newAlbum = new AlbumModel(AlbumData);
   await newAlbum.validate();
   await newAlbum.save();
@@ -29,7 +27,7 @@ async function _create(AlbumData: IAlbum): Promise<mongoose.Document<IAlbum>> {
 }
 
 // Operação READ
-async function _read(id: string): Promise<mongoose.Document<IAlbum>> {
+async function _read(id: string): Promise<mongoose.Document<unknown, any, IAlbum> & IAlbum> {
   const albumDoc = await AlbumModel.findById(id);
   if (!albumDoc) throw new NotFoundError("Album not found");
 
@@ -37,7 +35,7 @@ async function _read(id: string): Promise<mongoose.Document<IAlbum>> {
 }
 
 // Operação UPDATE
-async function _update(id: string, newData: IAlbum): Promise<mongoose.Document<IAlbum>> {
+async function _update(id: string, newData: IAlbum): Promise<mongoose.Document<unknown, any, IAlbum> & IAlbum> {
   const albumDoc = await AlbumModel.findById(id);
   if (!albumDoc) throw new NotFoundError("Album not found");
 
