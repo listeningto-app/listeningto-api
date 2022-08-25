@@ -6,9 +6,7 @@ dotenv.config({ path: join(__dirname, "../.env") });
 // Imports
 import express from "express";
 import mongoose from "mongoose";
-import morgan from "morgan";
 import fileupload from "express-fileupload";
-import fs from "fs";
 import { CronJob } from 'cron';
 import deleteUnusedFiles from './services/deleteUnusedFiles.service'
 
@@ -25,12 +23,6 @@ app.use(express.static(join(__dirname, "../public")));
 app.use(fileupload());
 
 app.listen(8080, () => console.log("Conectado à porta 8080"));
-
-// Inicialização do Logger
-const logStream = fs.createWriteStream(join(__dirname, "../access.log"), {
-  flags: "a",
-});
-app.use(morgan("common", { stream: logStream }));
 
 // Cronograma da limpeza de arquivos inutilizados
 new CronJob("0 0 * * *", deleteUnusedFiles, null, true, "America/Sao_Paulo");

@@ -12,7 +12,10 @@ const MusicSchema = new mongoose.Schema<IMusic>({
     required: [true, "O nome da música é obrigatório"],
   },
   file: String,
-  cover: String,
+  cover: {
+    type: String,
+    default: "/images/1/2bc42b242b5d423f77a700a4e2bb12df.png"
+  },
   timesPlayed: {
     type: Number,
     default: 0,

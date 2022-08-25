@@ -19,6 +19,7 @@ const AlbumSchema = new mongoose.Schema<IAlbum>({
   }],
   cover: {
     type: String,
+    default: "/images/1/2bc42b242b5d423f77a700a4e2bb12df.png"
   },
 }, { timestamps: true });
 

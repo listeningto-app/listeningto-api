@@ -15,7 +15,10 @@ const PlaylistSchema = new mongoose.Schema<IPlaylist>({
     type: mongoose.Types.ObjectId,
     ref: "MusicModel",
   }],
-  cover: String,
+  cover: {
+    type: String,
+    default: "/images/1/2bc42b242b5d423f77a700a4e2bb12df.png"
+  },
   private: {
     type: Boolean,
     default: false
