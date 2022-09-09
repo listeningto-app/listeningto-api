@@ -34,14 +34,13 @@ async function _update(id: string, newData: IUser): Promise<mongoose.Document<un
   if (!userDoc) throw new NotFoundError("Usuário não encontrado");
 
   if (newData.username) userDoc.username = newData.username;
-  if (newData.email) userDoc.email = newData.email;
   if (newData.password) userDoc.password = newData.password;
   if (newData.profilePic) userDoc.profilePic = newData.profilePic;
 
   // Verificação e atualização no database
   await userDoc.validate().catch((e: any) => {
     throw new BadRequestError(e.message);
-  });;
+  });
   await userDoc.save();
 
   return userDoc;

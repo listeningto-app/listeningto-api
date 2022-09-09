@@ -64,7 +64,6 @@ router.patch("/", async (req, res) => {
 
     let toUpdate: IUser = {
       username: req.body.username,
-      email: req.body.email,
       password: req.body.password,
     };
 
