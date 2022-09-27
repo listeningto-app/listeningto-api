@@ -23,6 +23,9 @@ const PlaylistSchema = new mongoose.Schema<IPlaylist>({
     type: Boolean,
     default: false
   },
+  tags: {
+    type: [String]
+  }
 }, { timestamps: true });
 
 export default mongoose.model("PlaylistModel", PlaylistSchema);

@@ -16,10 +16,16 @@ const MusicSchema = new mongoose.Schema<IMusic>({
     type: String,
     default: "/images/1/2bc42b242b5d423f77a700a4e2bb12df.png"
   },
-  timesPlayed: {
+  views: {
     type: Number,
     default: 0,
   },
+  duration: {
+    type: Number
+  },
+  tags: {
+    type: [String]
+  }
 }, { timestamps: true });
 
 export default mongoose.model("MusicModel", MusicSchema);

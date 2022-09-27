@@ -79,6 +79,7 @@ router.patch("/:id", async (req, res) => {
     let toUpdate: IPatchAlbum = {
       name: req.body.name,
       musics: req.body.musics,
+      tags: req.body.tags,
       order: req.body.order
     };
     const cover = req.files?.cover;
@@ -151,6 +152,30 @@ router.patch("/:id", async (req, res) => {
 
       // Atualizar
       toUpdate.musics = newMusics;
+    }
+
+    // Atualização de tags
+    if (toUpdate.tags) {
+      toUpdate.tags = Array.isArray(toUpdate.tags) ? toUpdate.tags : [toUpdate.tags];
+
+      // Remoção de duplicatas de tags
+      let uniqueTags = toUpdate.tags.filter((item, pos) => {
+        return toUpdate.tags!.indexOf(item) == pos;
+      });
+      const tags = albumDoc.tags!;
+
+      // Inserção ou remoção de autores
+      for (let i in uniqueTags) {
+        const index = tags.findIndex((tag) => tag == tags[i]);
+
+        if (index === -1) {
+          tags.push(uniqueTags[i]);
+        } else {
+          tags.splice(index, 1);
+        }
+      }
+
+      toUpdate.tags = tags;
     }
 
     const updatedAlbum: IPopulatedAlbum = await AlbumService.populate(await AlbumService.update(req.params.id, toUpdate));

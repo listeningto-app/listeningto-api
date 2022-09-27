@@ -42,6 +42,7 @@ async function _update(id: string, newData: IAlbum): Promise<mongoose.Document<u
   if (newData.name) albumDoc.name = newData.name;
   if (newData.musics) albumDoc.musics = newData.musics;
   if (newData.cover) albumDoc.cover = newData.cover;
+  if (newData.tags) albumDoc.tags = newData.tags;
 
   // Verificação e atualização no database
   await albumDoc.validate();

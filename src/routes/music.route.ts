@@ -6,6 +6,7 @@ import { IMusic, IPopulatedMusic } from "../interfaces/music.interface";
 import UserModel from "../models/user.model";
 import AlbumService from "../services/album.service";
 import { IPopulatedAlbum } from "../interfaces/album.interface"
+import audioDuration from '../services/audioDuration.service'
 
 // Import e inicialização do Express
 import express from "express";
@@ -27,7 +28,7 @@ router.post("/", async (req, res) => {
     const auth = req.headers.authorization;
     const id = (await authCheck(auth)).id;
 
-    let { name }: IMusic = req.body;
+    let { name, tags }: IMusic = req.body;
     const file = req.files?.file;
     const cover = req.files?.cover;
 
@@ -55,14 +56,17 @@ router.post("/", async (req, res) => {
     let coverPath;
     if (cover) coverPath = await fileHandling("Image", Array.isArray(cover) ? cover.shift()! : cover);
 
-    const filePath = await fileHandling("Music", Array.isArray(file) ? file.shift()! : file);
+    const filepath = await fileHandling("Music", Array.isArray(file) ? file.shift()! : file);
+    const duration = await audioDuration(filepath);
 
     // Inserção no database
     const objForCreation: IMusic = {
       name: name,
       authors: uniqueAuthors,
-      file: filePath,
+      file: filepath,
+      duration: duration,
       cover: coverPath,
+      tags: tags
     };
 
     const musicDoc: IPopulatedMusic = await MusicService.populate(await MusicService.create(objForCreation));
@@ -84,6 +88,7 @@ router.patch("/:id", async (req, res) => {
     let toUpdate: IMusic = {
       name: req.body.name,
       authors: req.body.authors,
+      tags: req.body.tags
     };
 
     // Atualização de autores
@@ -128,6 +133,30 @@ router.patch("/:id", async (req, res) => {
       toUpdate.cover = await fileHandling("Image", Array.isArray(cover) ? cover.shift()! : cover);
     }
 
+    // Atualização de tags
+    if (toUpdate.tags) {
+      toUpdate.tags = Array.isArray(toUpdate.tags) ? toUpdate.tags : [toUpdate.tags];
+
+      // Remoção de duplicatas de tags
+      let uniqueTags = toUpdate.tags.filter((item, pos) => {
+        return toUpdate.tags!.indexOf(item) == pos;
+      });
+      const tags = musicDoc.tags!;
+
+      // Inserção ou remoção de autores
+      for (let i in uniqueTags) {
+        const index = tags.findIndex((tag) => tag == tags[i]);
+
+        if (index === -1) {
+          tags.push(uniqueTags[i]);
+        } else {
+          tags.splice(index, 1);
+        }
+      }
+
+      toUpdate.tags = tags;
+    }
+
     const updatedMusic: IPopulatedMusic = await MusicService.populate(await MusicService.update(req.params.id, toUpdate));
     return res.status(200).json(updatedMusic);
   } catch (e: any) {
@@ -161,6 +190,19 @@ router.get("/:id/album", async (req, res) => {
 
     const populatedAlbum: IPopulatedAlbum = await AlbumService.populate(album);
     return res.status(200).json(populatedAlbum);
+  } catch (e: any) {
+    errorHandling(e, res);
+  }
+});
+
+// Operação PUT - Atualizar visualizações - Path /:id/views
+router.put("/:id/views", async (req, res) => {
+  try {
+    const musicDoc = await MusicService.read(req.params.id);
+
+    musicDoc.views!++;
+    await musicDoc.save();
+    return res.status(200).json({ views: musicDoc.views });
   } catch (e: any) {
     errorHandling(e, res);
   }

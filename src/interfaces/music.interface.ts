@@ -7,8 +7,9 @@ export interface IMusic {
   name?: string;
   file?: string;
   cover?: string;
-  genre?: string;
-  timesPlayed?: number;
+  duration?: number;
+  views?: number;
+  tags?: string[];
   readonly createdAt?: Date;
   readonly updatedAt?: Date;
 }
@@ -19,8 +20,9 @@ export interface IPopulatedMusic {
   name: string;
   file: string;
   cover: string;
-  genre: string;
-  timesPlayed: number;
+  duration: number;
+  views: number;
+  tags?: string[];
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }

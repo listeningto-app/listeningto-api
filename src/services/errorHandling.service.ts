@@ -34,6 +34,7 @@ import type express from "express";
 
 export default function errorHandling(error: Error, res: express.Response) {
   let statusCode: number;
+  console.log(error);
 
   switch (error.name) {
     case "BadRequestError": {

@@ -21,6 +21,9 @@ const AlbumSchema = new mongoose.Schema<IAlbum>({
     type: String,
     default: "/images/1/2bc42b242b5d423f77a700a4e2bb12df.png"
   },
+  tags: {
+    type: [String]
+  }
 }, { timestamps: true });
 
 export default mongoose.model("AlbumModel", AlbumSchema);

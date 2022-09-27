@@ -8,6 +8,7 @@ export interface IAlbum {
   name?: string;
   musics?: (mongoose.Types.ObjectId | string | IMusic)[];
   cover?: string;
+  tags?: string[];
   readonly createdAt?: Date;
   readonly updatedAt?: Date;
 }
@@ -31,6 +32,7 @@ export interface IPopulatedAlbum {
     readonly updatedAt: Date;
   }];
   cover: string;
+  tags?: string[];
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }

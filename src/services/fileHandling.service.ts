@@ -18,7 +18,7 @@ async function fileHandling(FileType: string, file: fileupload.UploadedFile) {
 
       // Buscar por arquivo com mesma hash e extensão
       const existentFile = await UserModel.findOne({ profilePic: { $regex: filename } });
-      if (existentFile) return existentFile.profilePic;
+      if (existentFile) return existentFile.profilePic!;
 
       folder = "images";
       break;
@@ -29,7 +29,7 @@ async function fileHandling(FileType: string, file: fileupload.UploadedFile) {
 
       // Buscar por arquivo com mesma hash e extensão
       const existentFile = await MusicModel.findOne({ file: { $regex: filename } });
-      if (existentFile) return existentFile.file;
+      if (existentFile) return existentFile.file!;
 
       folder = "musics";
       break;
@@ -57,7 +57,7 @@ async function fileHandling(FileType: string, file: fileupload.UploadedFile) {
     fs.mkdirSync(join(__dirname, "../../", "public", relativePath));
   }
 
-  file.mv(join(__dirname, "../../", "public", relativePath, filename));
+  await file.mv(join(__dirname, "../../", "public", relativePath, filename));
 
   return `${relativePath}/${filename}`;
 }

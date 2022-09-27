@@ -8,6 +8,7 @@ export interface IPlaylist {
   name?: string;
   musics?: (string | mongoose.Types.ObjectId | IMusic)[] | null;
   cover?: string;
+  tags?: string[];
   private?: boolean;
   readonly createdAt?: Date;
   readonly updatedAt?: Date;
@@ -32,6 +33,7 @@ export interface IPopulatedPlaylist {
     readonly updatedAt: Date;
   }] | null;
   cover: string;
+  tags?: string[];
   private: boolean;
   readonly createdAt: Date;
   readonly updatedAt: Date;

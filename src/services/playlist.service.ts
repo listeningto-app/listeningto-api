@@ -45,6 +45,7 @@ async function _update(id: string, newData: IPlaylist): Promise<mongoose.Documen
   if (newData.musics) playlistDoc.musics = newData.musics;
   if (newData.cover) playlistDoc.cover = newData.cover;
   if (typeof newData.private == "boolean") playlistDoc.private = newData.private;
+  if (newData.tags) playlistDoc.tags = newData.tags;
 
   // Verificação e atualização no database
   await playlistDoc.validate();
