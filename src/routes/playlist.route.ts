@@ -1,7 +1,7 @@
 import fileHandling from "../services/fileHandling.service";
 import errorHandling, { BadRequestError, UnauthorizedError, NotFoundError } from "../services/errorHandling.service";
 import authCheck from "../services/auth.service";
-import { IPatchPlaylist, IPlaylist } from "../interfaces/playlist.interface";
+import { IPatchPlaylist, IPlaylist, IPopulatedPlaylist } from "../interfaces/playlist.interface";
 import PlaylistModel from "../models/playlist.model";
 import MusicModel from "../models/music.model";
 import PlaylistService from "../services/playlist.service";
@@ -10,6 +10,34 @@ import mongoose from "mongoose";
 // Import e inicialização do Express
 import express from "express";
 const router = express.Router();
+
+// Operação GET - Buscar playlist - Path /search
+router.get("/search", async (req, res) => {
+  try {
+    const query = req.query.query;
+    let playlists: any;
+
+    if (query) {
+      const regex = new RegExp(query.toString(), "i");
+      const docs = await PlaylistModel.find().populate("createdBy").exec();
+      playlists = docs.filter((doc) => {
+        const playlist = doc as unknown as IPopulatedPlaylist;
+
+        const testAgainstName = playlist.name.match(regex);
+        const testAgainstAuthor = playlist.createdBy.username!.match(regex);
+        const testAgainstTags = playlist.tags?.find((tag) => tag.match(regex));
+
+        return testAgainstName || testAgainstAuthor || testAgainstTags;
+      });
+    } else {
+      playlists = await PlaylistModel.find();
+    }
+
+    return res.status(200).json(playlists);
+  } catch (e: any) {
+    return errorHandling(e, res);
+  }
+});
 
 // Operação GET - Obter playlist - Path /
 router.get("/:id", async (req, res) => {
@@ -157,7 +185,7 @@ router.patch("/:id", async (req, res) => {
       toUpdate.tags = tags;
     }
 
-    const updatedPlaylist = await PlaylistService.populate(await PlaylistService.update(req.params.id, toUpdate));
+    const updatedPlaylist: IPopulatedPlaylist = await PlaylistService.populate(await PlaylistService.update(req.params.id, toUpdate));
     return res.status(200).json(updatedPlaylist);
   } catch (e: any) {
     return errorHandling(e, res);

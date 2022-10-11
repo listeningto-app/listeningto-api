@@ -11,6 +11,34 @@ import mongoose from "mongoose";
 import express from "express";
 const router = express.Router();
 
+// Operação GET - Buscar álbum - Path /search
+router.get("/search", async (req, res) => {
+  try {
+    const query = req.query.query;
+    let albums: any;
+
+    if (query) {
+      const regex = new RegExp(query.toString(), "i");
+      const docs = await AlbumModel.find().populate("author").exec();
+      albums = docs.filter((doc) => {
+        const album = doc as unknown as IPopulatedAlbum;
+
+        const testAgainstName = album.name.match(regex);
+        const testAgainstAuthor = album.author.username!.match(regex);
+        const testAgainstTags = album.tags?.find((tag) => tag.match(regex));
+
+        return testAgainstName || testAgainstAuthor || testAgainstTags;
+      });
+    } else {
+      albums = await AlbumModel.find();
+    }
+
+    return res.status(200).json(albums);
+  } catch (e: any) {
+    return errorHandling(e, res);
+  }
+});
+
 // Operação GET - Obter álbum - Path /
 router.get("/:id", async (req, res) => {
   try {

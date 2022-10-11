@@ -7,10 +7,39 @@ import UserModel from "../models/user.model";
 import AlbumService from "../services/album.service";
 import { IPopulatedAlbum } from "../interfaces/album.interface"
 import audioDuration from '../services/audioDuration.service'
+import MusicModel from "../models/music.model";
 
 // Import e inicialização do Express
 import express from "express";
 const router = express.Router();
+
+// Operação GET - Buscar música - Path /search
+router.get("/search", async (req, res) => {
+  try {
+    const query = req.query.query;
+    let musics: any;
+
+    if (query) {
+      const regex = new RegExp(query.toString(), "i");
+      const docs = await MusicModel.find().populate("authors").exec();
+      musics = docs.filter((doc) => {
+        const music = doc as IPopulatedMusic;
+
+        const testAgainstName = music.name.match(regex);
+        const testAgainstAuthors = music.authors.find((author) => author.username!.match(regex));
+        const testAgainstTags = music.tags?.find((tag) => tag.match(regex));
+
+        return testAgainstName || testAgainstAuthors || testAgainstTags;
+      });
+    } else {
+      musics = await MusicModel.find();
+    }
+
+    return res.status(200).json(musics);
+  } catch (e: any) {
+    return errorHandling(e, res);
+  }
+});
 
 // Operação GET - Obter música - Path /
 router.get("/:id", async (req, res) => {

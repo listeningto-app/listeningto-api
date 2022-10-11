@@ -12,6 +12,25 @@ import { IPlaylist } from "../interfaces/playlist.interface";
 import express from "express";
 const router = express.Router();
 
+// Operação GET - Buscar usuário - Path /search
+router.get("/search", async (req, res) => {
+  try {
+    const query = req.query.query;
+    let users: any[] | undefined;
+
+    if (query) {
+      const regex = new RegExp(query.toString(), "i");
+      users = await UserModel.find({ username: regex });
+    } else {
+      users = await UserModel.find();
+    }
+
+    return res.status(200).json(users);
+  } catch (e: any) {
+    return errorHandling(e, res);
+  }
+});
+
 // Operação GET - Obter usuário - Path /:id
 router.get("/:id", async (req, res) => {
   try {
@@ -105,7 +124,7 @@ router.post("/login", async (req, res) => {
     if (!email_or_username || !password) throw new BadRequestError("Um endereço de email ou nome de usuário e uma senha são necessários");
 
     // Checar database
-    const userDoc = await UserModel.findOne({ $or: [{ username: email_or_username }, { email: email_or_username }] });
+    const userDoc: any = await UserModel.findOne({ $or: [{ username: email_or_username }, { email: email_or_username }] });
     if (!userDoc) throw new NotFoundError("Não existe um usuário com o nome ou email informado");
 
     // Comparar senhas
