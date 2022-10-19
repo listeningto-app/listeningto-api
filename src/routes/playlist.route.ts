@@ -57,14 +57,25 @@ router.post("/", async (req, res) => {
     const auth = req.headers.authorization;
     const id = (await authCheck(auth)).id;
 
-    let { name }: IPlaylist = req.body;
+    let { name, tags }: IPlaylist = req.body;
     if (!name) throw new BadRequestError("Um nome para a playlist é obrigatório");
+
+    const cover = req.files?.cover;
+    const coverPath = cover ? await fileHandling("Image", Array.isArray(cover) ? cover.shift()! : cover) : undefined;
+
+    // Remoção de duplicatas de tags
+    let uniqueTags;
+    if (tags) uniqueTags = tags.filter((item, pos) => {
+      return tags!.indexOf(item) == pos;
+    });
 
     let objForCreation: IPlaylist = {
       createdBy: new mongoose.Types.ObjectId(id),
       name: name,
       musics: null,
       private: false,
+      cover: coverPath,
+      tags: uniqueTags
     };
 
     const playlistDoc = await PlaylistService.populate(await PlaylistService.create(objForCreation));
@@ -110,12 +121,13 @@ router.patch("/:id", async (req, res) => {
       }
 
       // Inserção ou remoção de músicas
-      let musics = playlistDoc.musics!;
+      let musics: string[] = playlistDoc.musics ? [...(playlistDoc.musics as string[])] : [];
 
       for (let i in uniqueMusics) {
         const index = musics.findIndex((mid) => mid.toString() === uniqueMusics[i].toString());
-        if (index === -1) musics.push(uniqueMusics[i]);
-        else musics.splice(index, 1);
+        if (index == -1) {
+          musics.push(uniqueMusics[i] as string)
+        } else musics.splice(index, 1);
       }
 
       toUpdate.musics = musics;
@@ -145,7 +157,6 @@ router.patch("/:id", async (req, res) => {
       // Adicionar no final da ordem as músicas não referenciadas
       for (let i in oldMusics) {
         const existsIn = order.find((val) => { return val == parseInt(i) });
-        console.log(existsIn);
 
         if (typeof existsIn == 'undefined') {
           order.push(parseInt(i));
@@ -169,17 +180,15 @@ router.patch("/:id", async (req, res) => {
       let uniqueTags = toUpdate.tags.filter((item, pos) => {
         return toUpdate.tags!.indexOf(item) == pos;
       });
-      const tags = playlistDoc.tags!;
+      
+      let tags: string[] = playlistDoc.tags ? [...(playlistDoc.tags as string[])] : [];
 
       // Inserção ou remoção de autores
       for (let i in uniqueTags) {
-        const index = tags.findIndex((tag) => tag == tags[i]);
+        const index = tags.findIndex((tag) => tag == uniqueTags[i]);
 
-        if (index === -1) {
-          tags.push(uniqueTags[i]);
-        } else {
-          tags.splice(index, 1);
-        }
+        if (index == -1) tags.push(uniqueTags[i] as string);
+        else tags.splice(index, 1);
       }
 
       toUpdate.tags = tags;

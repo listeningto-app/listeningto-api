@@ -5,7 +5,7 @@ import { NotFoundError } from "./errorHandling.service";
 
 // Popular álbum
 async function _populate(playlistDoc: mongoose.Document<unknown, any, IPlaylist> & IPlaylist): Promise<IPopulatedPlaylist> {
-  const populatedDoc: IPopulatedPlaylist = (await PlaylistModel.findOne({ _id: playlistDoc._id }).populate({ path: "musics", populate: { path: "authors" } }).populate({ path: "author" }).exec())!.toObject();
+  const populatedDoc: IPopulatedPlaylist = (await PlaylistModel.findOne({ _id: playlistDoc._id }).populate({ path: "musics", populate: { path: "authors" } }).populate({ path: "createdBy" }).exec())!.toObject();
   delete populatedDoc.createdBy.email;
 
   if (!populatedDoc.musics) return populatedDoc;

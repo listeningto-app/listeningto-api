@@ -138,19 +138,15 @@ router.patch("/:id", async (req, res) => {
         if (!doc) throw new NotFoundError("Usuário não encontrado");
       }
 
-      const authors = musicDoc.authors!;
+      let authors: string[] = musicDoc.authors ? [...(musicDoc.authors as string[])] : [];
 
       // Inserção ou remoção de autores
       for (let i in uniqueAuthors) {
         if (uniqueAuthors[i].toString() == id) throw new BadRequestError("Você não pode se remover dos autores");
 
         const index = authors.findIndex((aid) => aid.toString() === uniqueAuthors[i].toString());
-
-        if (index === -1) {
-          authors.push(uniqueAuthors[i]);
-        } else {
-          authors.splice(index, 1);
-        }
+        if (index == -1) authors.push(uniqueAuthors[i] as string);
+        else authors.splice(index, 1);
       }
 
       toUpdate.authors = authors;
@@ -170,17 +166,15 @@ router.patch("/:id", async (req, res) => {
       let uniqueTags = toUpdate.tags.filter((item, pos) => {
         return toUpdate.tags!.indexOf(item) == pos;
       });
-      const tags = musicDoc.tags!;
+      
+      let tags: string[] = musicDoc.tags ? [...(musicDoc.tags as string[])] : [];
 
       // Inserção ou remoção de autores
       for (let i in uniqueTags) {
-        const index = tags.findIndex((tag) => tag == tags[i]);
+        const index = tags.findIndex((tag) => tag == uniqueTags[i]);
 
-        if (index === -1) {
-          tags.push(uniqueTags[i]);
-        } else {
-          tags.splice(index, 1);
-        }
+        if (index == -1) tags.push(uniqueTags[i] as string);
+        else tags.splice(index, 1);
       }
 
       toUpdate.tags = tags;

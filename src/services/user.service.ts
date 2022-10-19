@@ -8,6 +8,7 @@ import MusicModel from "../models/music.model";
 import PlaylistModel from "../models/playlist.model";
 import UserModel from "../models/user.model";
 import { BadRequestError, NotFoundError } from "./errorHandling.service";
+import PlaylistService from './playlist.service'
 
 // Operação CREATE
 async function _create(UserData: IUser): Promise<mongoose.Document<unknown, any, IUser> & IUser> {
@@ -60,7 +61,10 @@ async function _playlists(id: string): Promise<IPlaylist[]> {
   let playlists: IPlaylist[] = [];
 
   const playlistDocs = await PlaylistModel.where("createdBy").equals(id);
-  playlistDocs.forEach((doc) => playlists.push(doc.toObject()));
+  for (let doc of playlistDocs) {
+    const playlist = await PlaylistService.populate(doc);
+    playlists.push(playlist);
+  }
 
   return playlists;
 }
