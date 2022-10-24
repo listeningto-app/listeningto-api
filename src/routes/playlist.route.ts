@@ -43,7 +43,12 @@ router.get("/search", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     let playlistDoc = await PlaylistService.populate(await PlaylistService.read(req.params.id));
-    if (playlistDoc.private) throw new UnauthorizedError("A playlist requisitada é privada");
+
+    if (playlistDoc.private && !req.headers.authorization) throw new UnauthorizedError("A playlist requisitada é privada");
+
+    const auth = req.headers.authorization;
+    const id = (await authCheck(auth)).id;
+    if (playlistDoc.private && playlistDoc.createdBy!._id!.toString() != id) throw new UnauthorizedError("A playlist requisitada é privada");
 
     return res.status(200).json(playlistDoc);
   } catch (e: any) {
@@ -97,7 +102,7 @@ router.patch("/:id", async (req, res) => {
     let toUpdate: IPatchPlaylist = {
       name: req.body.name,
       musics: req.body.musics,
-      private: req.body.private,
+      private: typeof req.body.private == "boolean" ? req.body.private : (req.body.private === 'true'),
       tags: req.body.tags,
       order: req.body.order
     };
