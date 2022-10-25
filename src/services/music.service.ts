@@ -8,10 +8,13 @@ import IUser from "../interfaces/user.interface";
 
 // Populate music
 async function _populate(musicDoc: mongoose.Document<unknown, any, IMusic> & IMusic): Promise<IPopulatedMusic> {
-  const populatedDoc: IPopulatedMusic = (await musicDoc.populate<{ authors: IUser[] }>("authors")).toObject();
+  let populatedDoc: IPopulatedMusic = (await musicDoc.populate<{ authors: IUser[] }>("authors")).toObject();
   populatedDoc.authors.forEach((author, index) => {
     delete populatedDoc.authors[index].email;
   });
+
+  const albumDoc = await AlbumModel.findOne({ musics: populatedDoc._id });
+  if (albumDoc) populatedDoc.cover = albumDoc.cover!
 
   return populatedDoc;
 }

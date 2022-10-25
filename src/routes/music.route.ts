@@ -8,6 +8,7 @@ import AlbumService from "../services/album.service";
 import { IPopulatedAlbum } from "../interfaces/album.interface"
 import audioDuration from '../services/audioDuration.service'
 import MusicModel from "../models/music.model";
+import AlbumModel from '../models/album.model'
 
 // Import e inicialização do Express
 import express from "express";
@@ -17,7 +18,7 @@ const router = express.Router();
 router.get("/search", async (req, res) => {
   try {
     const query = req.query.query;
-    let musics: any;
+    let musics: any[];
 
     if (query) {
       const regex = new RegExp(query.toString(), "i");
@@ -35,7 +36,15 @@ router.get("/search", async (req, res) => {
       musics = await MusicModel.find();
     }
 
-    return res.status(200).json(musics);
+    let musics2: any[] = [];
+    for (let music of musics) {
+      const albumDoc = await AlbumModel.findOne({ musics: music._id });
+      if (albumDoc) music.cover = albumDoc.cover!
+
+      musics2.push(music);
+    }
+
+    res.status(200).json(musics2);
   } catch (e: any) {
     return errorHandling(e, res);
   }
