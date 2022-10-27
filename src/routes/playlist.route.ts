@@ -45,6 +45,7 @@ router.get("/:id", async (req, res) => {
     let playlistDoc = await PlaylistService.populate(await PlaylistService.read(req.params.id));
 
     if (playlistDoc.private && !req.headers.authorization) throw new UnauthorizedError("A playlist requisitada é privada");
+    if (!req.headers.authorization && !playlistDoc.private) return res.status(200).json(playlistDoc);
 
     const auth = req.headers.authorization;
     const id = (await authCheck(auth)).id;
