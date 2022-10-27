@@ -5,7 +5,9 @@
   "license": "MIT",
   "scripts": {
     "dev": "ts-node-dev --rs --respawn .",
-    "test": "TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha --timeout 10000 -r ts-node/register 'src/test/**/*.spec.ts'"
+    "test": "TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha --timeout 10000 -r ts-node/register 'src/test/**/*.spec.ts'",
+    "build": "tsc",
+    "start": "node ./build/index"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
